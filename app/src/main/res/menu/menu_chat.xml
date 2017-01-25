@@ -1,0 +1,35 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".activities.MainActivity">
+    <item
+        android:id="@+id/register_item"
+        android:orderInCategory="100"
+        android:title="Register"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/discover_item"
+        android:orderInCategory="200"
+        android:title="Discover"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/connect_item"
+        android:orderInCategory="300"
+        android:title="Connect"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/manual_ip_item"
+        android:orderInCategory="400"
+        android:title="Manual IP Mode"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/discovery_mode_item"
+        android:orderInCategory="500"
+        android:title="Discovery Mode"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/send_image_item"
+        android:orderInCategory="600"
+        android:title="Send Image"
+        app:showAsAction="never" />
+</menu>

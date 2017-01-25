@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Network Service Discovery</string>
+
+    <string name="connect">Connect</string>
+    <string name="discover">Discover</string>
+    <string name="register">Register</string>
+    <string name="send">Send</string>
+</resources>

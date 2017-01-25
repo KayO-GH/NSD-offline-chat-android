@@ -1,0 +1,2 @@
+Make the Id for the contacts their service discovery names for now (This ideally will be a fully formatted phone number)
+The id will have to be of type long when used in an adapter, so we'll strip off the + symbol at that point
