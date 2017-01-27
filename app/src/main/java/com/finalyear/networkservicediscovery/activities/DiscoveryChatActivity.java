@@ -1,5 +1,6 @@
 package com.finalyear.networkservicediscovery.activities;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
@@ -59,7 +60,7 @@ public class DiscoveryChatActivity extends AppCompatActivity {
 
     public static final String TAG = "NsdChat";
     private String userName = null;
-    private Context ctx = this;
+    private Activity ctx = this;
     private ChatArrayAdapter chatArrayAdapter;
     private boolean received = false;
 

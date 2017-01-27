@@ -26,18 +26,18 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".activities.DiscoveryChatActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
         <activity
             android:name=".activities.ManualIpActivity"
             android:label="Manual IP Mode" />
         <activity android:name=".activities.UserDiscoveryActivity" />
         <activity android:name=".activities.SplashActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity android:name=".activities.RegistrationActivity" />
         <activity android:name=".activities.SendImageActivity"></activity>

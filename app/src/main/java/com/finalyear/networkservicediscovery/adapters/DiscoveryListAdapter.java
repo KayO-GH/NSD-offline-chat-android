@@ -28,6 +28,10 @@ public class DiscoveryListAdapter extends BaseAdapter {
         this.allContacts = allContacts;
     }
 
+    public void setAllContacts(ArrayList<Contact> allContacts) {
+        this.allContacts = allContacts;
+    }
+
     @Override
     public int getCount() {
         return allContacts.size();

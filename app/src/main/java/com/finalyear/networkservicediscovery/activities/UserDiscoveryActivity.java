@@ -3,6 +3,7 @@ package com.finalyear.networkservicediscovery.activities;
 
 //ListView holding list of users will show here
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Handler;
@@ -11,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -34,7 +36,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
 
     public static final String TAG = "NsdChat";
     private String userName = null;
-    private Context ctx = this;
+    private Activity ctx = this;
 
     private ChatConnection chatConnection;
     //private ChatArrayAdapter chatArrayAdapter;
@@ -52,7 +54,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
 
         Bundle receivedIdentity = getIntent().getBundleExtra("identity_bundle");
         userName = receivedIdentity.getString("identity");
-        nsdHelper = new NsdHelper(ctx);
+        nsdHelper = new NsdHelper(ctx,discoveryManager, discoveryListAdapter);
         nsdHelper.mServiceName = userName;
         nsdHelper.initializeNsd();
 
@@ -75,11 +77,12 @@ public class UserDiscoveryActivity extends AppCompatActivity {
         //advertise yourself
         new RegisterSequence().execute();
 
-        //scan the network for app instances
-        nsdHelper.discoverServices();
+        lvDiscoveryList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-        //Todo: ALGORITHM FOR THIS ACTIVITY IS IN THE EXERCISE BOOK I USED FOR NETWORKING REVISION
-
+            }
+        });
     }
 
     /*public void addChatLine(String line,boolean received) {
@@ -125,18 +128,18 @@ public class UserDiscoveryActivity extends AppCompatActivity {
                 if (chatConnection.getLocalPort() > -1) {
                     //port number set
                     currentPort = chatConnection.getLocalPort();
+                    publishProgress();
                     break;
                 }
             }
 
-            //Todo: now on UI thread, run discovery
-            nsdHelper.discoverServices();
+
             return null;
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
+        protected void onProgressUpdate(Void... values) {
+            super.onProgressUpdate(values);
             if (currentPort > -1) {
                 nsdHelper.registerService(currentPort);
                 Toast.makeText(UserDiscoveryActivity.this, "Port: " + currentPort, Toast.LENGTH_SHORT).show();
@@ -144,6 +147,19 @@ public class UserDiscoveryActivity extends AppCompatActivity {
                 Log.d(TAG, "ServerSocket isn't bound.LocalPort returned is: " + currentPort);
                 Toast.makeText(UserDiscoveryActivity.this, "ServerSocket isn't bound.", Toast.LENGTH_SHORT).show();
             }
+
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    nsdHelper.discoverServices();
+                }
+            });
+
         }
     }
 }

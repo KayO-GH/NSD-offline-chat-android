@@ -3,16 +3,25 @@ package com.finalyear.networkservicediscovery.utils.nsd_classes;
 /**
  * Created by KayO on 07/12/2016.
  */
+import android.app.Activity;
 import android.content.Context;
 import android.net.nsd.NsdServiceInfo;
 import android.net.nsd.NsdManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.finalyear.networkservicediscovery.adapters.DiscoveryListAdapter;
+import com.finalyear.networkservicediscovery.pojos.Contact;
+import com.finalyear.networkservicediscovery.utils.database.DiscoveryManager;
+
+import java.util.ArrayList;
+
 public class NsdHelper {
 
-    Context mContext;
-
+    Activity mContext;
+    DiscoveryManager discoveryManager;
+    DiscoveryListAdapter discoveryListAdapter;
+    ArrayList<Contact>currentContactList;
 
     NsdManager mNsdManager;
     NsdManager.ResolveListener mResolveListener;
@@ -28,13 +37,21 @@ public class NsdHelper {
 
     public NsdServiceInfo mService;
 
-    public NsdHelper(Context context) {
+    public NsdHelper(Activity context) {
         mContext = context;
         mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
     }
 
+    public NsdHelper(Activity context, DiscoveryManager discoveryManager, DiscoveryListAdapter discoveryListAdapter) {
+        mContext = context;
+        mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
+        this.discoveryManager = discoveryManager;
+        this.discoveryListAdapter = discoveryListAdapter;
+        currentContactList = this.discoveryManager.getAllContacts();
+    }
+
     public void initializeNsd() {
-        initializeResolveListener();
+        //initializeResolveListener();
         initializeDiscoveryListener();
         initializeRegistrationListener();
 
@@ -59,7 +76,7 @@ public class NsdHelper {
                     Log.d(TAG, "Same machine: " + mServiceName);
                 } else{
                     //resolve service
-                    mNsdManager.resolveService(service, mResolveListener);
+                    mNsdManager.resolveService(service, new MyResolveListener());
                 }
             }
 
@@ -90,7 +107,7 @@ public class NsdHelper {
         };
     }
 
-    public void initializeResolveListener() {
+    /*public void initializeResolveListener() {
         mResolveListener = new NsdManager.ResolveListener() {
 
             @Override
@@ -110,11 +127,17 @@ public class NsdHelper {
                 mService = serviceInfo;
                 //see details for current service info resolved
                 Toast.makeText(mContext, mService.toString(), Toast.LENGTH_SHORT).show();
-                //Todo: add discovered contact to list of current online users in a Listview
+                //add discovered contact to list of current online users in a Listview
+                Contact foundContact = new Contact(mService.getServiceName(),null,null,null);
+                foundContact.setIpAddress(mService.getHost());
+                foundContact.setPort(mService.getPort());
+                currentContactList.add(foundContact);
+                discoveryListAdapter.setAllContacts(currentContactList);
+                discoveryListAdapter.notifyDataSetChanged();
 
             }
         };
-    }
+    }*/
 
     public void initializeRegistrationListener() {
         mRegistrationListener = new NsdManager.RegistrationListener() {
@@ -179,5 +202,40 @@ public class NsdHelper {
 
     public void tearDown() {
         mNsdManager.unregisterService(mRegistrationListener);
+    }
+
+    private class MyResolveListener implements NsdManager.ResolveListener {
+        @Override
+        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+            Log.e(TAG, "Resolve failed" + errorCode);
+        }
+
+        @Override
+        public void onServiceResolved(NsdServiceInfo serviceInfo) {
+            Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
+
+            if (serviceInfo.getServiceName().equals(mServiceName)) {
+                Log.d(TAG, "Same IP.");
+                //remove return so code is no halted
+                return;
+            }
+            mService = serviceInfo;
+            //see details for current service info resolved
+            Toast.makeText(mContext, mService.toString(), Toast.LENGTH_SHORT).show();
+            //add discovered contact to list of current online users in a Listview
+            Contact foundContact = new Contact(mService.getServiceName(),null,null,null);
+            foundContact.setIpAddress(mService.getHost());
+            foundContact.setPort(mService.getPort());
+            currentContactList.add(foundContact);
+            discoveryListAdapter.setAllContacts(currentContactList);
+            mContext.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    discoveryListAdapter.notifyDataSetChanged();
+                }
+            });
+
+
+        }
     }
 }
