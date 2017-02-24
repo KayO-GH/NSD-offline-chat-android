@@ -1,7 +1,8 @@
 package com.finalyear.networkservicediscovery.pojos;
 
 import java.io.Serializable;
-import java.net.InetAddress;
+import java.net.Inet4Address;
+import java.net.Inet4Address;
 import java.util.Arrays;
 
 /**
@@ -14,7 +15,7 @@ public class Contact implements Serializable {
     private String lastMessage;
     private boolean isSenderOfLastMessage;//will be needed later
     private String phoneNumber;
-    private InetAddress ipAddress;
+    private Inet4Address ipAddress;
     private int port;
 
     public Contact() {
@@ -77,11 +78,11 @@ public class Contact implements Serializable {
         this.phoneNumber = phoneNumber;
     }
 
-    public InetAddress getIpAddress() {
+    public Inet4Address getIpAddress() {
         return ipAddress;
     }
 
-    public void setIpAddress(InetAddress ipAddress) {
+    public void setIpAddress(Inet4Address ipAddress) {
         this.ipAddress = ipAddress;
     }
 

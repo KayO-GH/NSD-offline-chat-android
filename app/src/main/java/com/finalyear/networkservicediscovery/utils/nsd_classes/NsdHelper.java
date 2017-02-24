@@ -14,6 +14,7 @@ import com.finalyear.networkservicediscovery.adapters.DiscoveryListAdapter;
 import com.finalyear.networkservicediscovery.pojos.Contact;
 import com.finalyear.networkservicediscovery.utils.database.DiscoveryManager;
 
+import java.net.Inet4Address;
 import java.util.ArrayList;
 
 public class NsdHelper {
@@ -214,9 +215,8 @@ public class NsdHelper {
         public void onServiceResolved(NsdServiceInfo serviceInfo) {
             Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
 
-            if (serviceInfo.getServiceName().equals(mServiceName)) {
+            if (serviceInfo.getServiceName().startsWith(mServiceName)) {
                 Log.d(TAG, "Same IP.");
-                //remove return so code is no halted
                 return;
             }
             mService = serviceInfo;
@@ -224,7 +224,7 @@ public class NsdHelper {
             Toast.makeText(mContext, mService.toString(), Toast.LENGTH_SHORT).show();
             //add discovered contact to list of current online users in a Listview
             Contact foundContact = new Contact(mService.getServiceName(),null,null,null);
-            foundContact.setIpAddress(mService.getHost());
+            foundContact.setIpAddress((Inet4Address) mService.getHost());
             foundContact.setPort(mService.getPort());
             currentContactList.add(foundContact);
             discoveryListAdapter.setAllContacts(currentContactList);

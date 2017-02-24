@@ -25,9 +25,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".activities.DiscoveryChatActivity">
-
-        </activity>
+        <activity android:name=".activities.DiscoveryChatActivity" />
         <activity
             android:name=".activities.ManualIpActivity"
             android:label="Manual IP Mode" />
@@ -40,7 +38,13 @@
             </intent-filter>
         </activity>
         <activity android:name=".activities.RegistrationActivity" />
-        <activity android:name=".activities.SendImageActivity"></activity>
+        <activity android:name=".activities.SendImageActivity" />
+        <activity android:name=".activities.ProvidedIpActivity" />
+
+        <service
+            android:name=".services.SocketService"
+            android:description="@string/description"
+            android:exported="false" />
     </application>
 
 </manifest>

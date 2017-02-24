@@ -14,28 +14,31 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public class ChatConnection {
+public class ChatConnection implements Serializable{
 
+    private  HashSet<InetAddress> ipSet = new HashSet<InetAddress>();
     private Handler mUpdateHandler;
     private ChatServer mChatServer;
     private ChatClient mChatClient;
 
-    private static final String TAG = "ChatConnection";
+    private static final String TAG = "ChatConnectionTag";
 
     private Socket mSocket;
     private int mPort = -1;
 
     public ChatConnection(Handler handler) {
         mUpdateHandler = handler;
-        //mChatServer = new ChatServer(handler);
-        mChatServer = new ChatServer();
+        mChatServer = new ChatServer(handler);
+        //mChatServer = new ChatServer();
     }
 
     public void tearDown() {
@@ -61,6 +64,15 @@ public class ChatConnection {
         mPort = port;
     }
 
+    //set of currently connected IP Addresses
+    public HashSet<InetAddress> getIpSet() {
+        return ipSet;
+    }
+
+    //set handler to modify it
+    public void setUpdateHandler(Handler mUpdateHandler) {
+        this.mUpdateHandler = mUpdateHandler;
+    }
 
     public synchronized void updateMessages(String msg, boolean local) {
         Log.e(TAG, "Updating message: " + msg);
@@ -94,14 +106,16 @@ public class ChatConnection {
                 }
             }
         }
+
         mSocket = socket;
+        Log.d(TAG, "Socket set.");
     }
 
     private Socket getSocket() {
         return mSocket;
     }
 
-    private class ChatServer {
+    private class ChatServer implements Serializable{
         ServerSocket mServerSocket = null;
         Thread mThread = null;
 
@@ -125,7 +139,7 @@ public class ChatConnection {
             }
         }
 
-        class ServerThread implements Runnable {
+        class ServerThread implements Runnable,Serializable {
 
             @Override
             public void run() {
@@ -155,7 +169,7 @@ public class ChatConnection {
         }
     }
 
-    private class ChatClient {
+    private class ChatClient implements Serializable{
 
         private InetAddress mAddress;
         private int PORT;
@@ -171,11 +185,18 @@ public class ChatConnection {
             this.mAddress = address;
             this.PORT = port;
 
+            //every connection results in this constructor being called.
+            //If we can store IP's and ports in a List or set over here, we can know all active connections
+            ipSet.add(address);
+            //Todo: remember to remove connections from the list or set upon disconnecting
+
             mSendThread = new Thread(new SendingThread());
             mSendThread.start();
+
+
         }
 
-        class SendingThread implements Runnable {
+        class SendingThread implements Runnable ,Serializable{
 
             BlockingQueue<String> mMessageQueue;
             private int QUEUE_CAPACITY = 10;
@@ -215,7 +236,7 @@ public class ChatConnection {
             }
         }
 
-        class ReceivingThread implements Runnable {
+        class ReceivingThread implements Runnable, Serializable {
 
             @Override
             public void run() {
