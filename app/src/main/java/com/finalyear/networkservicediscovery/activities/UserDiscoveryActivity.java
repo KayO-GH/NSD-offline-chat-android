@@ -88,7 +88,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
         super.onStop();
         // Unbind from the service
         if (bound) {
-            //unbindService(serviceConnection);
+            getApplicationContext().unbindService(serviceConnection);
             bound = false;
         }
     }
@@ -160,11 +160,13 @@ public class UserDiscoveryActivity extends AppCompatActivity {
 
                 //check if a connection has already been established
                 if(alreadyConnected(selectedIP)){//server
+                    Log.d(TAG, "onItemClick: Already connected to this user");
                     //a connection exists, open the chat
                     pushSocket.putBoolean("isServer",true);
                     chatIntent.putExtra("socket_bundle",pushSocket);
                     startActivity(chatIntent);
                 }else{//not the server
+                    Log.d(TAG, "onItemClick: New conection to this user");
                     pushSocket.putBoolean("isServer",false);
                     chatIntent.putExtra("socket_bundle",pushSocket);
                     startActivity(chatIntent);
@@ -202,7 +204,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
           nsdHelper.stopDiscovery();
         }
         if (bound) {
-            //unbindService(serviceConnection);
+            getApplicationContext().unbindService(serviceConnection);
             bound = false;
         }
     }

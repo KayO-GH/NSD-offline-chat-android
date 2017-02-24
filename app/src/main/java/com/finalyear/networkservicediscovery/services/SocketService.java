@@ -138,4 +138,23 @@ public class SocketService extends Service {
     public HashSet<InetAddress> getIpSet() {
         return ipSet;
     }
+
+    //get incoming message
+    public String getMsgIn() {
+        return msgIn;
+    }
+
+    public boolean sendMessage(String message){
+        try {
+            if (dout != null) {
+                dout.writeUTF(message);//send message
+                return true;
+            } else
+                Toast.makeText(getApplicationContext(), "dout is null, no socket connection", Toast.LENGTH_LONG).show();
+                return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
