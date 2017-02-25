@@ -36,6 +36,7 @@ public class SocketService extends Service {
     private final IBinder socketBinder = new LocalBinder();
     int port = -1;
     private HashSet<InetAddress> ipSet = new HashSet<InetAddress>();
+    String incoming = "";
 
     @Override
     public void onCreate() {
@@ -105,7 +106,6 @@ public class SocketService extends Service {
         @Override
         protected void onProgressUpdate(Void... values) {
             super.onProgressUpdate(values);
-
             //Todo: Update the UI or log messages or both
             //display messages from client
             /*received = true;
@@ -156,5 +156,9 @@ public class SocketService extends Service {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public DataInputStream getDin() {
+        return din;
     }
 }

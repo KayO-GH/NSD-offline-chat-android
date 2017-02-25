@@ -74,6 +74,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             bound = false;
+            Log.d(TAG, "onServiceDisconnected: Service Unbound");
         }
     };
 

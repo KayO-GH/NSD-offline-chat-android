@@ -67,6 +67,14 @@ public class ProvidedIpActivity extends AppCompatActivity {
             socketService = binder.getService();
             Log.d(TAG, "onServiceConnected: socketService created");
             bound = true;
+
+            //Todo: if the other person is joining a conversation you started
+            //Todo: they'll inform you to become the server and they become the client
+            connectTask = new ConnectServer();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
+            else
+                connectTask.execute((Void[]) null);
         }
 
         @Override
@@ -79,7 +87,11 @@ public class ProvidedIpActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         Intent bindIntent = new Intent(getApplicationContext(), SocketService.class);
-        getApplicationContext().bindService(bindIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+        if(getApplicationContext().bindService(bindIntent, serviceConnection, Context.BIND_AUTO_CREATE)){
+            Log.d(TAG, "onStart: bindService succeeded");
+        }else{
+            Log.d(TAG, "onStart: bindService failed");
+        }
 
         chatArrayAdapter = new ChatArrayAdapter(getApplicationContext(), R.layout.right);
         lvDisplay.setAdapter(chatArrayAdapter);
@@ -93,13 +105,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
         port = contact.getPort();
         Toast.makeText(ProvidedIpActivity.this, ip + "  " + port, Toast.LENGTH_SHORT).show();
 
-        //Todo: if the other person is joining a conversation you started
-        //Todo: they'll inform you to become the server and they become the client
-        connectTask = new ConnectServer();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-            connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
-        else
-            connectTask.execute((Void[]) null);
+
 
                 /*//user is the server
                 isServer = true;
@@ -226,11 +232,21 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
                 }
             } else {//I'm the server
-                //Todo : all interactions will be through the running service
+                //all interactions will be through the running service
                 if(bound){
                     //wait for incoming messages
-                    while (!(socketService.getMsgIn().equals("##exit"))) {//close socket when msgIn is ##exit
+                    /*while (!(socketService.getMsgIn().equals("##exit"))) {//close socket when msgIn is ##exit
                         msgIn = socketService.getMsgIn();//get new incoming message
+                        //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
+                        Log.d("incoming", msgIn);
+                        publishProgress();//update UI
+                    }*/
+                    while (!msgIn.equals("##exit")) {//close socket when msgIn is ##exit
+                        try {
+                            msgIn = socketService.getDin().readUTF();//get new incoming message
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
                         Log.d("incoming", msgIn);
                         publishProgress();//update UI
