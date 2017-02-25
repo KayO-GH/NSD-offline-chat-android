@@ -1,5 +1,13 @@
 package com.finalyear.networkservicediscovery.activities;
 
+/*
+DataInputStream object accessed from ProvicdedIpActivity to ensure data is read in, however, proving slow on certain devices and unresponsie on devices with lower API's.
+
+Best working version with services so far.
+Might have to insititute response mechanisms and force resends when a message is lost...
+Might also have to force data to activity from within service by passing the calling activity to the service
+*/
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -75,6 +83,8 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
             else
                 connectTask.execute((Void[]) null);
+
+            socketService.setServerUIActivity(ProvidedIpActivity.this);
         }
 
         @Override
@@ -231,16 +241,16 @@ public class ProvidedIpActivity extends AppCompatActivity {
                     e.printStackTrace();
 
                 }
-            } else {//I'm the server
+            } /*else {//I'm the server
                 //all interactions will be through the running service
                 if(bound){
                     //wait for incoming messages
-                    /*while (!(socketService.getMsgIn().equals("##exit"))) {//close socket when msgIn is ##exit
+                    *//*while (!(socketService.getMsgIn().equals("##exit"))) {//close socket when msgIn is ##exit
                         msgIn = socketService.getMsgIn();//get new incoming message
                         //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
                         Log.d("incoming", msgIn);
                         publishProgress();//update UI
-                    }*/
+                    }*//*
                     while (!msgIn.equals("##exit")) {//close socket when msgIn is ##exit
                         try {
                             msgIn = socketService.getDin().readUTF();//get new incoming message
@@ -256,7 +266,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 }
 
 
-                /*try {
+                *//*try {
                     serverSocket = new ServerSocket(myPort);//server starts at port 1201
                     socket = serverSocket.accept();//server will accept connections
 
@@ -271,8 +281,8 @@ public class ProvidedIpActivity extends AppCompatActivity {
                     }
                 } catch (IOException ex) {
                     //Logger.getLogger(ChatServer.class.getName()).log(Level.SEVERE, null, ex);
-                }*/
-            }
+                }*//*
+            }*/
 
             return null;
         }
@@ -290,10 +300,15 @@ public class ProvidedIpActivity extends AppCompatActivity {
             //tvDisplay.setText(tvDisplay.getText().toString().trim() + "\nServer:\t" + msgIn);
         }
 
-        private void receiveChatMessage(String s) {
+        /*private void receiveChatMessage(String s) {
             received = true;
             chatArrayAdapter.add(new ChatMessage(received, s));
-        }
+        }*/
+    }
+
+    public void receiveChatMessage(String s) {
+        received = true;
+        chatArrayAdapter.add(new ChatMessage(received, s));
     }
 
 

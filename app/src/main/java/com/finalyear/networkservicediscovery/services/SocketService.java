@@ -1,5 +1,6 @@
 package com.finalyear.networkservicediscovery.services;
 
+import android.app.Activity;
 import android.app.Service;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -11,6 +12,7 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.finalyear.networkservicediscovery.activities.ProvidedIpActivity;
 import com.finalyear.networkservicediscovery.activities.UserDiscoveryActivity;
 
 import java.io.DataInputStream;
@@ -37,6 +39,7 @@ public class SocketService extends Service {
     int port = -1;
     private HashSet<InetAddress> ipSet = new HashSet<InetAddress>();
     String incoming = "";
+    ProvidedIpActivity serverUIActivity = null;
 
     @Override
     public void onCreate() {
@@ -115,6 +118,10 @@ public class SocketService extends Service {
             else
                 receiveChatMessage("Server:\t" + msgIn);*/
             //tvDisplay.setText(tvDisplay.getText().toString().trim() + "\nServer:\t" + msgIn);
+
+            if(serverUIActivity != null){//activity has sent itself
+                serverUIActivity.receiveChatMessage("Client:\t"+msgIn);
+            }
         }
 
     }
@@ -160,5 +167,9 @@ public class SocketService extends Service {
 
     public DataInputStream getDin() {
         return din;
+    }
+
+    public void setServerUIActivity(ProvidedIpActivity serverUIActivity) {
+        this.serverUIActivity = serverUIActivity;
     }
 }
