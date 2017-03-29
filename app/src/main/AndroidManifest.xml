@@ -45,6 +45,8 @@
             android:name=".services.SocketService"
             android:description="@string/description"
             android:exported="false" />
+
+        <activity android:name=".activities.MainActivity"></activity>
     </application>
 
 </manifest>

@@ -9,7 +9,6 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.finalyear.networkservicediscovery.activities.SendImageActivity">
 
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,11 +16,13 @@
         android:layout_alignParentBottom="true"
         android:id="@+id/llConfirmButtons">
         <Button
+            android:id="@+id/btConfirmYes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="yes"/>
         <Button
+            android:id="@+id/btConfirmNo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"

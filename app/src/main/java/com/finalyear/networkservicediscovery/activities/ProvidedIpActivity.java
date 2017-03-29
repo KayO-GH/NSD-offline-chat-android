@@ -1,23 +1,23 @@
 package com.finalyear.networkservicediscovery.activities;
 
 /*
-DataInputStream object accessed from ProvicdedIpActivity to ensure data is read in, however, proving slow on certain devices and unresponsie on devices with lower API's.
-
-Best working version with services so far.
-Might have to insititute response mechanisms and force resends when a message is lost...
-Might also have to force data to activity from within service by passing the calling activity to the service
+Forced data to activity from within service by passing the calling activity to the service
 */
+// TODO: 28/03/2017 receive path to the image to be sent from SendImageActivity and call function in service to send the file
 
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.DataSetObserver;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Environment;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,10 +34,16 @@ import com.finalyear.networkservicediscovery.adapters.ChatArrayAdapter;
 import com.finalyear.networkservicediscovery.pojos.ChatMessage;
 import com.finalyear.networkservicediscovery.pojos.Contact;
 import com.finalyear.networkservicediscovery.services.SocketService;
+import com.finalyear.networkservicediscovery.utils.ImageConversionUtil;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -45,6 +51,8 @@ import java.net.Socket;
 // you may be required to change status to server while here, if te person you have been messaging opens their chat window
 //An opening of the chat window by the other party will send u a message informing you to change status immediately
 public class ProvidedIpActivity extends AppCompatActivity {
+    private static final int PICK_IMAGE = 100;
+
     private static final String TAG = "socket_service";
     private TextView tvIpAndPort;
     private ListView lvDisplay;
@@ -66,6 +74,10 @@ public class ProvidedIpActivity extends AppCompatActivity {
     AsyncTask<Void, Void, Void> connectTask;
     SocketService socketService;
     boolean bound = false;
+    InputStream inputStream;
+    OutputStream outputStream;
+    Toolbar toolbar;
+
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -94,12 +106,37 @@ public class ProvidedIpActivity extends AppCompatActivity {
     };
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            byte[] imageByteArray = data.getByteArrayExtra("imageArray");
+            String imagePath = data.getStringExtra("image_path");
+            //from here...convert byte array to bitmap and display
+            Bitmap bitmapToShow = ImageConversionUtil.convertByteArrayToPhoto(imageByteArray);
+
+            //call file transfer thread in service
+            socketService.sendImage(imagePath);
+
+        } else {
+            Toast.makeText(ProvidedIpActivity.this,
+                    "Something went wrong... the image is lost", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /*private void sendImage(byte[] bytesToSend) {
+        //code depends on whether you are the sender or the receiver
+        if(isServer){
+            socketService.sendFile(bytesToSend);
+        }
+    }*/
+
+    @Override
     protected void onStart() {
         super.onStart();
         Intent bindIntent = new Intent(getApplicationContext(), SocketService.class);
-        if(getApplicationContext().bindService(bindIntent, serviceConnection, Context.BIND_AUTO_CREATE)){
+        if (getApplicationContext().bindService(bindIntent, serviceConnection, Context.BIND_AUTO_CREATE)) {
             Log.d(TAG, "onStart: bindService succeeded");
-        }else{
+        } else {
             Log.d(TAG, "onStart: bindService failed");
         }
 
@@ -115,39 +152,15 @@ public class ProvidedIpActivity extends AppCompatActivity {
         port = contact.getPort();
         Toast.makeText(ProvidedIpActivity.this, ip + "  " + port, Toast.LENGTH_SHORT).show();
 
-
-
                 /*//user is the server
                 isServer = true;
                 new ConnectServer(socket, din, dout, serverSocket, isServer).execute();*/
 
-
         btSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //If server, interact with service, else do dout.writeUTF()
                 String msgOut = etMessage.getText().toString().trim();
-                if (isServer) {
-                    //interact with service
-                    if (socketService.sendMessage(msgOut)) {
-                        //message sent successfully
-                        showChatMessage("Server:\t" + msgOut);
-                    }else{
-                        Toast.makeText(getApplicationContext(), "Error sending message", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    try {
-                        if (dout != null) {
-                            dout.writeUTF(msgOut);//send message
-                            showChatMessage("Client:\t" + msgOut);
-                        } else
-                            Toast.makeText(getApplicationContext(), "dout is null, no socket connection", Toast.LENGTH_LONG).show();
-
-                        etMessage.requestFocus();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+                sendMessage(msgOut);
             }
         });
 
@@ -164,6 +177,32 @@ public class ProvidedIpActivity extends AppCompatActivity {
         });
     }
 
+    //function to send message
+    public void sendMessage(String msgOut) {
+        //If server, interact with service, else do dout.writeUTF()
+        if (isServer) {
+            //interact with service
+            if (socketService.sendMessage(msgOut)) {
+                //message sent successfully
+                showChatMessage("Server:\t" + msgOut);
+            } else {
+                Toast.makeText(getApplicationContext(), "Error sending message", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            try {
+                if (dout != null) {
+                    dout.writeUTF(msgOut);//send message
+                    showChatMessage("Client:\t" + msgOut);
+                } else
+                    Toast.makeText(getApplicationContext(), "dout is null, no socket connection", Toast.LENGTH_LONG).show();
+
+                etMessage.requestFocus();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     @Override
     protected void onStop() {
         super.onStop();
@@ -178,9 +217,10 @@ public class ProvidedIpActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manual_ip);
+        toolbar = (Toolbar) findViewById(R.id.tool_bar);
+        setSupportActionBar(toolbar);
 
         init();
-
     }
 
     private boolean showChatMessage(String s) {
@@ -228,9 +268,16 @@ public class ProvidedIpActivity extends AppCompatActivity {
                     } else {
                         Log.d(TAG, "doInBackground: socket already exists");
                     }
-                    din = new DataInputStream(socket.getInputStream());
-                    dout = new DataOutputStream(socket.getOutputStream());
+                    inputStream = socket.getInputStream();
+                    outputStream = socket.getOutputStream();
+
+                    din = new DataInputStream(inputStream);
+                    dout = new DataOutputStream(outputStream);
                     while (!msgIn.equals("##exit")) {//close socket when msgIn is ##exit
+                        if(msgIn.contains("##port:")){
+                            //extract new port number and connect to new socket
+                            connectToFilePort(ip,Integer.valueOf(msgIn.substring(msgIn.indexOf(':')+1)));
+                        }
                         msgIn = din.readUTF();//get new incoming message
                         //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
                         Log.d("incoming", msgIn);
@@ -306,6 +353,13 @@ public class ProvidedIpActivity extends AppCompatActivity {
         }*/
     }
 
+    private void connectToFilePort(String ip, Integer port) {
+        ClientRxThread clientRxThread =
+                new ClientRxThread(ip, port);
+
+        clientRxThread.start();
+    }
+
     public void receiveChatMessage(String s) {
         received = true;
         chatArrayAdapter.add(new ChatMessage(received, s));
@@ -334,8 +388,91 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
         if (id == R.id.discovery_mode_item) {
             this.finish();
+        } else if (id == R.id.send_image_item) {
+            Intent sendImageIntent = new Intent(getApplicationContext(), SendImageActivity.class);
+            Bundle pushRecipient = new Bundle();
+            //// TODO: 13/01/2017 send the name of the person you are talking with
+            //pushRecipient.putString("recipient", service);
+            //// TODO: 13/01/2017 bundle recipient's identity
+            //sendImageIntent.putExtra("identity_bundle",pushRecipient);
+            startActivityForResult(sendImageIntent, PICK_IMAGE);
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private class ClientRxThread extends Thread {
+        String dstAddress;
+        int dstPort;
+
+        ClientRxThread(String address, int port) {
+            dstAddress = address;
+            dstPort = port;
+        }
+
+        @Override
+        public void run() {
+            Socket tempSocket = null;
+
+            try {
+                tempSocket = new Socket(dstAddress, dstPort);
+
+                File file = new File(
+                        Environment.getExternalStorageDirectory(),
+                        "test.jpg");
+
+                ObjectInputStream ois = new ObjectInputStream(tempSocket.getInputStream());
+                byte[] bytes;
+                FileOutputStream fos = null;
+                try {
+                    bytes = (byte[])ois.readObject();
+                    fos = new FileOutputStream(file);
+                    fos.write(bytes);
+                } catch (ClassNotFoundException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } finally {
+                    if(fos!=null){
+                        fos.close();
+                    }
+
+                }
+
+                tempSocket.close();
+
+                ProvidedIpActivity.this.runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        Toast.makeText(ProvidedIpActivity.this,
+                                "Transfer Finished",
+                                Toast.LENGTH_LONG).show();
+                    }});
+
+            } catch (IOException e) {
+
+                e.printStackTrace();
+
+                final String eMsg = "Something wrong: " + e.getMessage();
+                ProvidedIpActivity.this.runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        Toast.makeText(ProvidedIpActivity.this,
+                                eMsg,
+                                Toast.LENGTH_LONG).show();
+                    }});
+
+            } finally {
+                if(tempSocket != null){
+                    try {
+                        tempSocket.close();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 }

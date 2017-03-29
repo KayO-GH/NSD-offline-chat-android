@@ -1,28 +1,28 @@
 package com.finalyear.networkservicediscovery.activities;
 
-
-//ListView holding list of users will show here
-
 import android.app.Activity;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.design.widget.TabLayout;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import com.finalyear.networkservicediscovery.R;
 import com.finalyear.networkservicediscovery.adapters.DiscoveryListAdapter;
+import com.finalyear.networkservicediscovery.adapters.ViewPagerAdapter;
 import com.finalyear.networkservicediscovery.pojos.Contact;
 import com.finalyear.networkservicediscovery.services.SocketService;
 import com.finalyear.networkservicediscovery.utils.database.DiscoveryManager;
@@ -31,11 +31,15 @@ import com.finalyear.networkservicediscovery.utils.nsd_classes.NsdHelper;
 
 import java.net.Inet4Address;
 
-public class UserDiscoveryActivity extends AppCompatActivity {
-
+public class MainActivity extends AppCompatActivity {
     private NsdHelper nsdHelper;
     private ListView lvDiscoveryList;
     private DiscoveryListAdapter discoveryListAdapter;
+
+    public DiscoveryListAdapter getDiscoveryListAdapter() {
+        return discoveryListAdapter;
+    }
+
     private DiscoveryManager discoveryManager;
     private Contact selectedConact;
     private Inet4Address selectedIP;
@@ -52,7 +56,10 @@ public class UserDiscoveryActivity extends AppCompatActivity {
     private int currentPort;
     SocketService socketService;
     boolean bound = false;
-    Toolbar toolbar;
+    private Toolbar toolbar;
+    private TabLayout tabLayout;
+    private ViewPager viewPager;
+    private ViewPagerAdapter viewPagerAdapter;// Declaring the Toolbar Object
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -62,7 +69,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
             socketService = binder.getService();
             bound = true;
             Log.d(TAG, "about to register ");
-            AsyncTask<Void, Void, Void> registerTask = new RegisterSequence();
+            AsyncTask<Void, Void, Void> registerTask = new MainActivity.RegisterSequence();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
                 registerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
             else
@@ -76,6 +83,92 @@ public class UserDiscoveryActivity extends AppCompatActivity {
         }
     };
 
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        /*
+        Assigning view variables to thier respective view in xml
+        by findViewByID method
+         */
+        toolbar = (Toolbar) findViewById(R.id.tool_bar);
+        tabLayout = (TabLayout) findViewById(R.id.tabs);
+        viewPager = (ViewPager) findViewById(R.id.viewpager);
+
+        /*
+        Creating Adapter and setting that adapter to the viewPager
+        setSupportActionBar method takes the toolbar and sets it as
+        the default action bar thus making the toolbar work like a normal
+        action bar.
+         */
+        viewPagerAdapter = new ViewPagerAdapter(getSupportFragmentManager());
+        viewPager.setAdapter(viewPagerAdapter);
+        setSupportActionBar(toolbar);
+
+        /*
+        TabLayout.newTab() method creates a tab view, Now a Tab view is not the view
+        which is below the tabs, its the tab itself.
+         */
+
+        final TabLayout.Tab chatTab = tabLayout.newTab();
+        final TabLayout.Tab groupTab = tabLayout.newTab();
+        final TabLayout.Tab filesTab = tabLayout.newTab();
+
+        /*
+        Setting Title text for our tabs respectively
+         */
+
+        chatTab.setText("Chat");
+        groupTab.setText("Group");
+        filesTab.setText("Files");
+
+        /*
+        Adding the tab view to our tablayout at appropriate positions
+        As I want home at first position I am passing chatTab and 0 as argument to
+        the tablayout and like wise for other tabs as well
+         */
+        tabLayout.addTab(chatTab, 0);
+        tabLayout.addTab(groupTab, 1);
+        tabLayout.addTab(filesTab, 2);
+
+        /*
+        TabTextColor sets the color for the title of the tabs, passing a ColorStateList here makes
+        tab change colors in different situations such as selected, active, inactive etc
+
+        TabIndicatorColor sets the color for the indiactor below the tabs
+         */
+        tabLayout.setTabTextColors(ContextCompat.getColorStateList(this, R.color.tab_selector));
+        tabLayout.setSelectedTabIndicatorColor(ContextCompat.getColor(this, R.color.indicator));
+
+        /*
+        Adding a onPageChangeListener to the viewPager
+        1st we add the PageChangeListener and pass a TabLayoutPageChangeListener so that Tabs Selection
+        changes when a viewpager page changes.
+         */
+        viewPager.addOnPageChangeListener(new TabLayout.TabLayoutOnPageChangeListener(tabLayout));
+
+        init();
+
+        //start the service now even before binding to ensure that port is ready when needed
+        Intent serviceIntent = new Intent(getApplicationContext(), SocketService.class);
+        startService(serviceIntent);
+        Log.d(TAG, "onStart: Service started");
+
+        lvDiscoveryList.setAdapter(discoveryListAdapter);
+        //chatArrayAdapter = new ChatArrayAdapter(UserDiscoveryActivity.this,R.layout.right);
+
+        Bundle receivedIdentity = getIntent().getBundleExtra("identity_bundle");
+        userName = receivedIdentity.getString("identity");
+        nsdHelper = new NsdHelper(ctx, discoveryManager, discoveryListAdapter);
+        nsdHelper.mServiceName = userName;
+        nsdHelper.initializeNsd();
+    }
+
+    private void init() {
+
+    }
 
     @Override
     protected void onStart() {
@@ -93,135 +186,27 @@ public class UserDiscoveryActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_user_discovery);
-        //getSupportActionBar().setTitle("Discovery Activity");
-        toolbar = (Toolbar) findViewById(R.id.tool_bar);
-        setSupportActionBar(toolbar);
-
-        init();
-
-        //start the service now even before binding to ensure that port is ready when needed
-        Intent serviceIntent = new Intent(getApplicationContext(), SocketService.class);
-        startService(serviceIntent);
-        Log.d(TAG, "onStart: Service started");
-
-        lvDiscoveryList.setAdapter(discoveryListAdapter);
-        //chatArrayAdapter = new ChatArrayAdapter(UserDiscoveryActivity.this,R.layout.right);
-
-        Bundle receivedIdentity = getIntent().getBundleExtra("identity_bundle");
-        userName = receivedIdentity.getString("identity");
-        nsdHelper = new NsdHelper(ctx, discoveryManager, discoveryListAdapter);
-        nsdHelper.mServiceName = userName;
-        nsdHelper.initializeNsd();
-
-        //might have to override some methods for this handler object (check the class that uses mUpdateHandler)
-        /*updateHandler = new Handler(){
-            @Override
-            public void handleMessage(Message msg) {
-                String chatLine = msg.getData().getString("msg");
-                if (chatLine.startsWith("me")) {
-                    //addChatLine(chatLine, false);
-                    // TODO: 07/02/2017 log message
-                } else {
-                    //addChatLine(chatLine, true);
-                    // TODO: 07/02/2017 log message
-                }
-
-            }
-        };*/
-        /*{
-            @Override
-            public void handleMessage(Message msg) {
-                //log messages correctly while still on this page
-            }
-        };*/
-        //chatConnection = new ChatConnection(updateHandler);
-
-
-        Intent bindIntent = new Intent(getApplicationContext(), SocketService.class);
-        getApplicationContext().bindService(bindIntent, serviceConnection, Context.BIND_AUTO_CREATE);
-
-
-        lvDiscoveryList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                //get ip address and service name of contact at that position
-                selectedConact = (Contact) lvDiscoveryList.getItemAtPosition(i);
-                //extract ip, port and name in chat activity for use in connection
-                selectedIP = selectedConact.getIpAddress();
-                /*
-                selectedPort = selectedConact.getPort();*/
-
-                final Intent chatIntent = new Intent(getApplicationContext(), ProvidedIpActivity.class);
-                Bundle pushSocket = new Bundle();
-                pushSocket.putSerializable("contact", selectedConact);
-                pushSocket.putInt("myPort", currentPort);
-
-                //check if a connection has already been established
-                if (alreadyConnected(selectedIP)) {//server
-                    Log.d(TAG, "onItemClick: Already connected to this user");
-                    //a connection exists, open the chat
-                    pushSocket.putBoolean("isServer", true);
-                    chatIntent.putExtra("socket_bundle", pushSocket);
-                    startActivity(chatIntent);
-                } else {//not the server
-                    Log.d(TAG, "onItemClick: New conection to this user");
-                    pushSocket.putBoolean("isServer", false);
-                    chatIntent.putExtra("socket_bundle", pushSocket);
-                    startActivity(chatIntent);
-                }
-            }
-        });
-    }
-
-
-    private boolean alreadyConnected(Inet4Address selectedIP) {
-        //Todo: check if we are already connected to this socket as a server
-        if (socketService.getIpSet().contains(selectedIP))
-            Log.d(TAG, "already Connected: " + selectedIP.toString());
-        else
-            Log.d(TAG, "new Connection");
-        return socketService.getIpSet().contains(selectedIP);
-    }
-
-    /*public void addChatLine(String line,boolean received) {
-        chatArrayAdapter.add(new ChatMessage(true, line));//received value hard
-    }*/
-
-    private void init() {
-        lvDiscoveryList = (ListView) findViewById(R.id.lvDiscoveryList);
-        discoveryManager = new DiscoveryManager(getApplicationContext());
-        discoveryListAdapter = new DiscoveryListAdapter(getApplicationContext(), discoveryManager.getAllContacts());//finish this up with the SavedListActivity forat in KayO
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_chat, menu);
+        return true;
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        if (nsdHelper != null) {
-            nsdHelper.stopDiscovery();
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.discovery_mode_item) {
+            return true;
         }
-        if (bound) {
-            getApplicationContext().unbindService(serviceConnection);
-            bound = false;
-        }
+
+        return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (nsdHelper != null) {
-            nsdHelper.discoverServices();
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        nsdHelper.tearDown();
-        //chatConnection.tearDown();
-        super.onDestroy();
-    }
 
     //registration is done using an async task and while loop to make sure that registration is seen
     private class RegisterSequence extends AsyncTask<Void, Void, Void> {
@@ -255,11 +240,11 @@ public class UserDiscoveryActivity extends AppCompatActivity {
             if (currentPort > -1) {
                 nsdHelper.registerService(currentPort);
                 Log.d(TAG, "onProgressUpdate: registering");
-                Toast.makeText(UserDiscoveryActivity.this, "Port: " + currentPort, Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Port: " + currentPort, Toast.LENGTH_SHORT).show();
 
             } else {
                 Log.d(TAG, "ServerSocket isn't bound.LocalPort returned is: " + currentPort);
-                Toast.makeText(UserDiscoveryActivity.this, "ServerSocket isn't bound.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "ServerSocket isn't bound.", Toast.LENGTH_SHORT).show();
             }
 
         }
@@ -277,6 +262,4 @@ public class UserDiscoveryActivity extends AppCompatActivity {
 
         }
     }
-
-
 }

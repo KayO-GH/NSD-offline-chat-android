@@ -12,12 +12,20 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.finalyear.networkservicediscovery.activities.MainActivity;
 import com.finalyear.networkservicediscovery.activities.ProvidedIpActivity;
 import com.finalyear.networkservicediscovery.activities.UserDiscoveryActivity;
 
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -30,9 +38,21 @@ import java.util.HashSet;
 
 public class SocketService extends Service {
     Socket socket;
-    ServerSocket serverSocket;
+    ServerSocket serverSocket, tempServerSocket;
+
+    TempServerThread tempServerThread;
+
+    //input streams
+    InputStream inputStream;
     DataInputStream din;
+    // TODO: 28/03/2017 for buffering image bytes
+    BufferedInputStream bis;//from Image Sharer server
+    //output streams
+    OutputStream outputStream;
     DataOutputStream dout;
+    // TODO: 28/03/2017 for streaming the bytes through the socket
+    ObjectOutputStream oos;//from Image Sharer server
+
     String msgIn = "";
     private String TAG = "socket_service";
     private final IBinder socketBinder = new LocalBinder();
@@ -40,6 +60,9 @@ public class SocketService extends Service {
     private HashSet<InetAddress> ipSet = new HashSet<InetAddress>();
     String incoming = "";
     ProvidedIpActivity serverUIActivity = null;
+
+    //A service is either acting as a primary server(for messages) or secondary server (for files)
+    boolean isPrimaryServer = false;
 
     @Override
     public void onCreate() {
@@ -88,10 +111,12 @@ public class SocketService extends Service {
                 socket = serverSocket.accept();//server will accept connections
                 Log.d(TAG, "doInBackground: client IP: "+socket.getInetAddress());
                 ipSet.add(socket.getInetAddress());
+                inputStream = socket.getInputStream();
+                outputStream = socket.getOutputStream();
 
-                din = new DataInputStream(socket.getInputStream());
+                din = new DataInputStream(inputStream);
                 Log.d(TAG, "new Input stream");
-                dout = new DataOutputStream(socket.getOutputStream());
+                dout = new DataOutputStream(outputStream);
 
                 while(!msgIn.equals("exit")){
                     msgIn = din.readUTF();//get new incoming message
@@ -171,5 +196,115 @@ public class SocketService extends Service {
 
     public void setServerUIActivity(ProvidedIpActivity serverUIActivity) {
         this.serverUIActivity = serverUIActivity;
+    }
+
+    public void setPrimaryServer(boolean primaryServer) {
+        isPrimaryServer = primaryServer;
+    }
+
+    public void sendImage(String path) {
+        //start temporary server
+        tempServerThread = new TempServerThread(path);
+        tempServerThread.start();
+    }
+
+    private class FileTxThread extends Thread {
+        String path;
+        Socket tempSocket;
+
+        FileTxThread(Socket tempSocket, String path) {
+            this.path = path;
+            this.tempSocket = tempSocket;
+        }
+
+        @Override
+        public void run() {
+
+            String queriedPath = path;
+            File file = new File(queriedPath);
+            Log.d(TAG, "queriedPath: "+queriedPath);
+
+            byte[] bytes = new byte[(int) file.length()];
+            BufferedInputStream bis;
+            try {
+                bis = new BufferedInputStream(new FileInputStream(file));
+                bis.read(bytes, 0, bytes.length);//store bytes in byte[] bytes
+
+                ObjectOutputStream oos = new ObjectOutputStream(tempSocket.getOutputStream());
+                oos.writeObject(bytes);//write bytes to the socket
+                oos.flush();
+
+                tempSocket.close();
+
+                final String sentMsg = "File sent to: " + tempSocket.getInetAddress();
+                serverUIActivity.runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        Toast.makeText(serverUIActivity,
+                                sentMsg,
+                                Toast.LENGTH_LONG).show();
+                    }});
+
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } finally {
+                try {
+                    tempSocket.close();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+
+        }
+    }
+
+    private class TempServerThread extends Thread{
+        String picPath;
+        public TempServerThread(String path) {
+            this.picPath = path;
+        }
+
+        @Override
+        public void run() {
+            Socket tempSocket = null;//temporary image transfer socket
+
+            try {
+                tempServerSocket = new ServerSocket(0);//temporary server socket on random available port
+                serverUIActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        serverUIActivity.sendMessage("##port:"+tempServerSocket.getLocalPort());
+                    }
+                });
+
+                //send this port alert to the recipient to authorize transfer by connecting to this server
+
+                while (true) {
+                    tempSocket = tempServerSocket.accept();//blocks loop till a socket connection is accepted
+                    //when a connection is established, send the file
+                    FileTxThread fileTxThread = new FileTxThread(tempSocket,picPath);
+                    fileTxThread.start();
+                   // break;
+                }
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } finally {
+                if (tempSocket != null) {
+                    try {
+                        tempSocket.close();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 }
