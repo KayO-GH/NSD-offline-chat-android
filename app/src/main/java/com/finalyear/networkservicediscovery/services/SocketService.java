@@ -290,7 +290,7 @@ public class SocketService extends Service {
                     //when a connection is established, send the file
                     FileTxThread fileTxThread = new FileTxThread(tempSocket,picPath);
                     fileTxThread.start();
-                    break;
+                    //break; // TODO: 05/04/2017 find a way to break out of this loop without throwing an exception
                 }
             } catch (IOException e) {
                 // TODO Auto-generated catch block
