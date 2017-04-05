@@ -115,6 +115,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
             Bitmap bitmapToShow = ImageConversionUtil.convertByteArrayToPhoto(imageByteArray);
 
             //call file transfer thread in service
+            socketService.setComplete(false);
             socketService.sendImage(imagePath);
 
         } else {
@@ -424,7 +425,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
                 //make directory for our incoming files
                 //note that a File object can be either an actual file or a directory
-                File wifilesDirectory = new File(Environment.getExternalStorageDirectory().toString()+"/Wi-Files");
+                File wifilesDirectory = new File(Environment.getExternalStorageDirectory().toString() + "/Wi-Files");
                 wifilesDirectory.mkdirs();
                 File file = new File(
                         wifilesDirectory,
@@ -456,7 +457,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
                         Toast.makeText(ProvidedIpActivity.this,
                                 "Transfer Finished",
                                 Toast.LENGTH_LONG).show();
-
+                        sendMessage("##transfer_complete");
                     }
                 });
 
@@ -465,6 +466,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 e.printStackTrace();
 
                 final String eMsg = "Something wrong: " + e.getMessage();
+                Log.d(TAG, "IOException: " + e.toString());
                 ProvidedIpActivity.this.runOnUiThread(new Runnable() {
 
                     @Override

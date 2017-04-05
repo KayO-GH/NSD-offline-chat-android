@@ -64,6 +64,8 @@ public class SocketService extends Service {
     //A service is either acting as a primary server(for messages) or secondary server (for files)
     boolean isPrimaryServer = false;
 
+    private boolean complete = false;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -120,8 +122,13 @@ public class SocketService extends Service {
 
                 while(!msgIn.equals("exit")){
                     msgIn = din.readUTF();//get new incoming message
-                    if(!msgIn.equals(""))
+                    if(!msgIn.equals("")){
                         Log.d(TAG, "Incoming message: " + msgIn);
+                        if(msgIn.contains("##transfer_complete")){
+                            complete = true;
+                        }
+                    }
+
                     //display messages from client
                     publishProgress();//update UI
                 }
@@ -232,7 +239,7 @@ public class SocketService extends Service {
 
                 //send this port alert to the recipient to authorize transfer by connecting to this server
 
-                while (true) {
+                while (!complete) {
                     tempSocket = tempServerSocket.accept();//blocks loop till a socket connection is accepted
                     //when a connection is established, send the file
                     FileTxThread fileTxThread = new FileTxThread(tempSocket,picPath);
@@ -309,5 +316,13 @@ public class SocketService extends Service {
             }
 
         }
+    }
+
+    public boolean isComplete() {
+        return complete;
+    }
+
+    public void setComplete(boolean complete) {
+        this.complete = complete;
     }
 }
