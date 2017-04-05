@@ -183,7 +183,7 @@ public class SocketService extends Service {
                 return true;
             } else
                 Toast.makeText(getApplicationContext(), "dout is null, no socket connection", Toast.LENGTH_LONG).show();
-                return false;
+            return false;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -206,6 +206,53 @@ public class SocketService extends Service {
         //start temporary server
         tempServerThread = new TempServerThread(path);
         tempServerThread.start();
+    }
+
+
+    private class TempServerThread extends Thread{
+        String picPath;
+        public TempServerThread(String path) {
+            this.picPath = path;
+        }
+
+        @Override
+        public void run() {
+            Socket tempSocket = null;//temporary image transfer socket
+
+            try {
+                tempServerSocket = new ServerSocket(0);//temporary server socket on random available port
+                serverUIActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //send message of format: ##port:12345/file_name.extension
+                        String fileName = picPath.substring(picPath.lastIndexOf('/')+1);
+                        serverUIActivity.sendMessage("##port:"+tempServerSocket.getLocalPort()+"/"+fileName);
+                    }
+                });
+
+                //send this port alert to the recipient to authorize transfer by connecting to this server
+
+                while (true) {
+                    tempSocket = tempServerSocket.accept();//blocks loop till a socket connection is accepted
+                    //when a connection is established, send the file
+                    FileTxThread fileTxThread = new FileTxThread(tempSocket,picPath);
+                    fileTxThread.start();
+                    //break;
+                }
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } finally {
+                if (tempSocket != null) {
+                    try {
+                        tempSocket.close();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
     private class FileTxThread extends Thread {
@@ -261,50 +308,6 @@ public class SocketService extends Service {
                 }
             }
 
-        }
-    }
-
-    private class TempServerThread extends Thread{
-        String picPath;
-        public TempServerThread(String path) {
-            this.picPath = path;
-        }
-
-        @Override
-        public void run() {
-            Socket tempSocket = null;//temporary image transfer socket
-
-            try {
-                tempServerSocket = new ServerSocket(0);//temporary server socket on random available port
-                serverUIActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        serverUIActivity.sendMessage("##port:"+tempServerSocket.getLocalPort());
-                    }
-                });
-
-                //send this port alert to the recipient to authorize transfer by connecting to this server
-
-                while (true) {
-                    tempSocket = tempServerSocket.accept();//blocks loop till a socket connection is accepted
-                    //when a connection is established, send the file
-                    FileTxThread fileTxThread = new FileTxThread(tempSocket,picPath);
-                    fileTxThread.start();
-                    //break; // TODO: 05/04/2017 find a way to break out of this loop without throwing an exception
-                }
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } finally {
-                if (tempSocket != null) {
-                    try {
-                        tempSocket.close();
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
-            }
         }
     }
 }

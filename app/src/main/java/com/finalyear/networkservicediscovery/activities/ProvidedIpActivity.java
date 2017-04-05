@@ -274,9 +274,12 @@ public class ProvidedIpActivity extends AppCompatActivity {
                     din = new DataInputStream(inputStream);
                     dout = new DataOutputStream(outputStream);
                     while (!msgIn.equals("##exit")) {//close socket when msgIn is ##exit
-                        if(msgIn.contains("##port:")){
+                        if (msgIn.contains("##port:")) {
                             //extract new port number and connect to new socket
-                            connectToFilePort(ip,Integer.valueOf(msgIn.substring(msgIn.indexOf(':')+1)));
+                            connectToFilePort(
+                                    ip,
+                                    Integer.valueOf(msgIn.substring(msgIn.indexOf(':') + 1, msgIn.indexOf('/'))),
+                                    msgIn.substring(msgIn.lastIndexOf('/') + 1));
                         }
                         msgIn = din.readUTF();//get new incoming message
                         //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
@@ -353,9 +356,9 @@ public class ProvidedIpActivity extends AppCompatActivity {
         }*/
     }
 
-    private void connectToFilePort(String ip, Integer port) {
+    private void connectToFilePort(String ip, Integer port, String fileName) {
         ClientRxThread clientRxThread =
-                new ClientRxThread(ip, port);
+                new ClientRxThread(ip, port, fileName);
 
         clientRxThread.start();
     }
@@ -404,10 +407,12 @@ public class ProvidedIpActivity extends AppCompatActivity {
     private class ClientRxThread extends Thread {
         String dstAddress;
         int dstPort;
+        String fileName;
 
-        ClientRxThread(String address, int port) {
+        ClientRxThread(String address, int port, String fileName) {
             dstAddress = address;
             dstPort = port;
+            this.fileName = fileName;
         }
 
         @Override
@@ -417,22 +422,26 @@ public class ProvidedIpActivity extends AppCompatActivity {
             try {
                 tempSocket = new Socket(dstAddress, dstPort);
 
+                //make directory for our incoming files
+                //note that a File object can be either an actual file or a directory
+                File wifilesDirectory = new File(Environment.getExternalStorageDirectory().toString()+"/Wi-Files");
+                wifilesDirectory.mkdirs();
                 File file = new File(
-                        Environment.getExternalStorageDirectory(),
-                        "test.jpg");
+                        wifilesDirectory,
+                        fileName);
 
                 ObjectInputStream ois = new ObjectInputStream(tempSocket.getInputStream());
                 byte[] bytes;
                 FileOutputStream fos = null;
                 try {
-                    bytes = (byte[])ois.readObject();
+                    bytes = (byte[]) ois.readObject();
                     fos = new FileOutputStream(file);
                     fos.write(bytes);
                 } catch (ClassNotFoundException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 } finally {
-                    if(fos!=null){
+                    if (fos != null) {
                         fos.close();
                     }
 
@@ -447,7 +456,9 @@ public class ProvidedIpActivity extends AppCompatActivity {
                         Toast.makeText(ProvidedIpActivity.this,
                                 "Transfer Finished",
                                 Toast.LENGTH_LONG).show();
-                    }});
+
+                    }
+                });
 
             } catch (IOException e) {
 
@@ -461,10 +472,12 @@ public class ProvidedIpActivity extends AppCompatActivity {
                         Toast.makeText(ProvidedIpActivity.this,
                                 eMsg,
                                 Toast.LENGTH_LONG).show();
-                    }});
+                        sendMessage(eMsg);
+                    }
+                });
 
             } finally {
-                if(tempSocket != null){
+                if (tempSocket != null) {
                     try {
                         tempSocket.close();
                     } catch (IOException e) {
