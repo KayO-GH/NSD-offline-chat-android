@@ -112,7 +112,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
             byte[] imageByteArray = data.getByteArrayExtra("imageArray");
             String imagePath = data.getStringExtra("image_path");
             //from here...convert byte array to bitmap and display
-            Bitmap bitmapToShow = ImageConversionUtil.convertByteArrayToPhoto(imageByteArray);
+            //TODO Bitmap bitmapToShow = ImageConversionUtil.convertByteArrayToPhoto(imageByteArray);
 
             //call file transfer thread in service
             socketService.setComplete(false);

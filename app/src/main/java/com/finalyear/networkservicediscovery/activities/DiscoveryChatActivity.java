@@ -44,9 +44,9 @@ public class DiscoveryChatActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-            byte[] bytesToSend = data.getByteArrayExtra("imageArray");
+            /*byte[] bytesToSend = data.getByteArrayExtra("imageArray");
             //from here...convert byte array to bitmap and display
-            Bitmap bitmapToShow = ImageConversionUtil.convertByteArrayToPhoto(bytesToSend);
+            Bitmap bitmapToShow = ImageConversionUtil.convertByteArrayToPhoto(bytesToSend);*/
             //send the byte array over the socket
 
         } else {
