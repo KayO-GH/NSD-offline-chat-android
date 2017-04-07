@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".activities.MainActivity">
+    tools:context=".activities.SendFiileActivity">
     <item
         android:id="@+id/register_item"
         android:orderInCategory="100"
@@ -31,5 +31,20 @@
         android:id="@+id/send_image_item"
         android:orderInCategory="600"
         android:title="Send Image"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/send_video_item"
+        android:orderInCategory="700"
+        android:title="Send Video"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/send_audio_item"
+        android:orderInCategory="800"
+        android:title="Send Audio"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/send_file_item"
+        android:orderInCategory="900"
+        android:title="Send File"
         app:showAsAction="never" />
 </menu>

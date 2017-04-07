@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
 import android.database.DataSetObserver;
-import android.graphics.Bitmap;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Handler;
 import android.os.Message;
@@ -22,7 +21,6 @@ import android.widget.Toast;
 
 import com.finalyear.networkservicediscovery.adapters.ChatArrayAdapter;
 import com.finalyear.networkservicediscovery.pojos.Contact;
-import com.finalyear.networkservicediscovery.utils.ImageConversionUtil;
 import com.finalyear.networkservicediscovery.utils.nsd_classes.ChatConnection;
 import com.finalyear.networkservicediscovery.pojos.ChatMessage;
 import com.finalyear.networkservicediscovery.utils.nsd_classes.NsdHelper;
@@ -287,7 +285,7 @@ public class DiscoveryChatActivity extends AppCompatActivity {
             Intent manualIntent = new Intent(getApplicationContext(), ManualIpActivity.class);
             startActivity(manualIntent);
         } else if (id == R.id.send_image_item) {
-            Intent sendImageIntent = new Intent(getApplicationContext(), SendImageActivity.class);
+            Intent sendImageIntent = new Intent(getApplicationContext(), SendFileActivity.class);
             Bundle pushRecipient = new Bundle();
             //// TODO: 13/01/2017 send the name of the person you are talking with
             //pushRecipient.putString("recipient", service);

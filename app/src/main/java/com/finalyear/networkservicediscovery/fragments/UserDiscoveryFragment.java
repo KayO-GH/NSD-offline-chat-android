@@ -8,9 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 
 import com.finalyear.networkservicediscovery.R;
-import com.finalyear.networkservicediscovery.activities.MainActivity;
-import com.finalyear.networkservicediscovery.adapters.DiscoveryListAdapter;
-import com.finalyear.networkservicediscovery.utils.database.DiscoveryManager;
+import com.finalyear.networkservicediscovery.activities.SendFiileActivity;
 
 /**
  * Created by KayO on 09/03/2017.
@@ -25,7 +23,7 @@ public class UserDiscoveryFragment extends Fragment {
 
         init(view);
 
-        lvDiscoveryList.setAdapter(((MainActivity)getActivity()).getDiscoveryListAdapter());
+        lvDiscoveryList.setAdapter(((SendFiileActivity)getActivity()).getDiscoveryListAdapter());
         return view;
     }
 

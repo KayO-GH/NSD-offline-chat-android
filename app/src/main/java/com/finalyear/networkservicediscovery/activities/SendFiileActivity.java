@@ -31,7 +31,7 @@ import com.finalyear.networkservicediscovery.utils.nsd_classes.NsdHelper;
 
 import java.net.Inet4Address;
 
-public class MainActivity extends AppCompatActivity {
+public class SendFiileActivity extends AppCompatActivity {
     private NsdHelper nsdHelper;
     private ListView lvDiscoveryList;
     private DiscoveryListAdapter discoveryListAdapter;
@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
             socketService = binder.getService();
             bound = true;
             Log.d(TAG, "about to register ");
-            AsyncTask<Void, Void, Void> registerTask = new MainActivity.RegisterSequence();
+            AsyncTask<Void, Void, Void> registerTask = new SendFiileActivity.RegisterSequence();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
                 registerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
             else
@@ -240,11 +240,11 @@ public class MainActivity extends AppCompatActivity {
             if (currentPort > -1) {
                 nsdHelper.registerService(currentPort);
                 Log.d(TAG, "onProgressUpdate: registering");
-                Toast.makeText(MainActivity.this, "Port: " + currentPort, Toast.LENGTH_SHORT).show();
+                Toast.makeText(SendFiileActivity.this, "Port: " + currentPort, Toast.LENGTH_SHORT).show();
 
             } else {
                 Log.d(TAG, "ServerSocket isn't bound.LocalPort returned is: " + currentPort);
-                Toast.makeText(MainActivity.this, "ServerSocket isn't bound.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(SendFiileActivity.this, "ServerSocket isn't bound.", Toast.LENGTH_SHORT).show();
             }
 
         }

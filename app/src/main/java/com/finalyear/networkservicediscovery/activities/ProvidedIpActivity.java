@@ -3,18 +3,22 @@ package com.finalyear.networkservicediscovery.activities;
 /*
 Forced data to activity from within service by passing the calling activity to the service
 */
-// TODO: 28/03/2017 receive path to the image to be sent from SendImageActivity and call function in service to send the file
+// TODO: 28/03/2017 receive path to the image to be sent from SendFileActivity and call function in service to send the file
 
+import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.database.DataSetObserver;
-import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -34,7 +38,6 @@ import com.finalyear.networkservicediscovery.adapters.ChatArrayAdapter;
 import com.finalyear.networkservicediscovery.pojos.ChatMessage;
 import com.finalyear.networkservicediscovery.pojos.Contact;
 import com.finalyear.networkservicediscovery.services.SocketService;
-import com.finalyear.networkservicediscovery.utils.ImageConversionUtil;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -51,7 +54,8 @@ import java.net.Socket;
 // you may be required to change status to server while here, if te person you have been messaging opens their chat window
 //An opening of the chat window by the other party will send u a message informing you to change status immediately
 public class ProvidedIpActivity extends AppCompatActivity {
-    private static final int PICK_IMAGE = 100;
+    private static final int PICK_FILE = 100;
+    String fileType = "type";
 
     private static final String TAG = "socket_service";
     private TextView tvIpAndPort;
@@ -77,6 +81,14 @@ public class ProvidedIpActivity extends AppCompatActivity {
     InputStream inputStream;
     OutputStream outputStream;
     Toolbar toolbar;
+
+    static final Integer WRITE_EXST = 0x3;
+
+    //post-permission variables
+    String pp_ip;
+    int pp_port;
+    String pp_fileName;
+
 
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -239,6 +251,25 @@ public class ProvidedIpActivity extends AppCompatActivity {
         tvIpAndPort = (TextView) findViewById(R.id.tvIpAndPort);
     }
 
+    private void askForPermission(String permission, Integer requestCode) {
+        if (ContextCompat.checkSelfPermission(getApplicationContext(), permission) != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(ProvidedIpActivity.this, permission)) {
+
+                //This is called if user has denied the permission before
+                //In this case I am just asking the permission again
+                ActivityCompat.requestPermissions(ProvidedIpActivity.this, new String[]{permission}, requestCode);
+
+            } else {
+
+                ActivityCompat.requestPermissions(ProvidedIpActivity.this, new String[]{permission}, requestCode);
+            }
+        } else {
+            Toast.makeText(this, "" + permission + " is already granted.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
     private class ConnectServer extends AsyncTask<Void, Void, Void> {
 
@@ -358,10 +389,31 @@ public class ProvidedIpActivity extends AppCompatActivity {
     }
 
     private void connectToFilePort(String ip, Integer port, String fileName) {
-        ClientRxThread clientRxThread =
-                new ClientRxThread(ip, port, fileName);
+        //check if we're on Marshmallow or higher
+        if(Build.VERSION.SDK_INT >= 23){
+            pp_ip = ip;
+            pp_port = port;
+            pp_fileName = fileName;
+            askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE,WRITE_EXST);
 
-        clientRxThread.start();
+
+        }else{
+            ClientRxThread clientRxThread =
+                    new ClientRxThread(ip, port, fileName);
+
+            clientRxThread.start();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == WRITE_EXST){//redundant test since this is the only permission we ask for
+            ClientRxThread clientRxThread =
+                    new ClientRxThread(pp_ip, pp_port, pp_fileName);
+
+            clientRxThread.start();
+        }
     }
 
     public void receiveChatMessage(String s) {
@@ -387,20 +439,60 @@ public class ProvidedIpActivity extends AppCompatActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
+        Intent sendFileIntent = new Intent(getApplicationContext(), SendFileActivity.class);
         //noinspection SimplifiableIfStatement
-
-        if (id == R.id.discovery_mode_item) {
+        switch(id){
+            case R.id.send_image_item:
+                sendFileIntent.putExtra(fileType,"image");
+                //Bundle pushRecipient = new Bundle();
+                //// TODO: 13/01/2017 send the name of the person you are talking with
+                //pushRecipient.putString("recipient", service);
+                //// TODO: 13/01/2017 bundle recipient's identity
+                //sendImageIntent.putExtra("identity_bundle",pushRecipient);
+                startActivityForResult(sendFileIntent, PICK_FILE);
+                break;
+            case R.id.send_audio_item:
+                sendFileIntent.putExtra(fileType,"audio");
+                //Bundle pushRecipient = new Bundle();
+                //// TODO: 13/01/2017 send the name of the person you are talking with
+                //pushRecipient.putString("recipient", service);
+                //// TODO: 13/01/2017 bundle recipient's identity
+                //sendImageIntent.putExtra("identity_bundle",pushRecipient);
+                startActivityForResult(sendFileIntent, PICK_FILE);
+                break;
+            case R.id.send_video_item:
+                sendFileIntent.putExtra(fileType,"video");
+                //Bundle pushRecipient = new Bundle();
+                //// TODO: 13/01/2017 send the name of the person you are talking with
+                //pushRecipient.putString("recipient", service);
+                //// TODO: 13/01/2017 bundle recipient's identity
+                //sendImageIntent.putExtra("identity_bundle",pushRecipient);
+                startActivityForResult(sendFileIntent, PICK_FILE);
+                break;
+            case R.id.send_file_item:
+                sendFileIntent.putExtra(fileType,"file");
+                //Bundle pushRecipient = new Bundle();
+                //// TODO: 13/01/2017 send the name of the person you are talking with
+                //pushRecipient.putString("recipient", service);
+                //// TODO: 13/01/2017 bundle recipient's identity
+                //sendImageIntent.putExtra("identity_bundle",pushRecipient);
+                startActivityForResult(sendFileIntent, PICK_FILE);
+                break;
+            case R.id.discovery_mode_item:
+                this.finish();
+                break;
+        }
+        /*if (id == R.id.discovery_mode_item) {
             this.finish();
         } else if (id == R.id.send_image_item) {
-            Intent sendImageIntent = new Intent(getApplicationContext(), SendImageActivity.class);
+            Intent sendImageIntent = new Intent(getApplicationContext(), SendFileActivity.class);
             Bundle pushRecipient = new Bundle();
             //// TODO: 13/01/2017 send the name of the person you are talking with
             //pushRecipient.putString("recipient", service);
             //// TODO: 13/01/2017 bundle recipient's identity
             //sendImageIntent.putExtra("identity_bundle",pushRecipient);
-            startActivityForResult(sendImageIntent, PICK_IMAGE);
-        }
+            startActivityForResult(sendImageIntent, PICK_FILE);
+        }*/
 
         return super.onOptionsItemSelected(item);
     }

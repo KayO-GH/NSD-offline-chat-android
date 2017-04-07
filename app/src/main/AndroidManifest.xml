@@ -38,7 +38,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".activities.RegistrationActivity" />
-        <activity android:name=".activities.SendImageActivity" />
+        <activity android:name=".activities.SendFileActivity" />
         <activity android:name=".activities.ProvidedIpActivity" />
 
         <service
@@ -46,7 +46,7 @@
             android:description="@string/description"
             android:exported="false" />
 
-        <activity android:name=".activities.MainActivity"></activity>
+        <activity android:name=".activities.SendFiileActivity"></activity>
     </application>
 
 </manifest>

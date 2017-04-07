@@ -1,20 +1,16 @@
 package com.finalyear.networkservicediscovery.services;
 
-import android.app.Activity;
 import android.app.Service;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.finalyear.networkservicediscovery.activities.MainActivity;
 import com.finalyear.networkservicediscovery.activities.ProvidedIpActivity;
-import com.finalyear.networkservicediscovery.activities.UserDiscoveryActivity;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
