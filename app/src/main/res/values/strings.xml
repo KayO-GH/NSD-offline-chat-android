@@ -6,4 +6,8 @@
     <string name="register">Register</string>
     <string name="send">Send</string>
     <string name="description">Referee service for NSD Chats</string>
+    <string name="image_prompt">Send this Image?</string>
+    <string name="video_prompt">Send this Video?</string>
+    <string name="file_prompt">Send this FIle?</string>
+    <string name="audio_prompt">Send this Audio?</string>
 </resources>

@@ -32,21 +32,40 @@
         android:id="@+id/tvPrompt"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Send this picture?"
+        android:text="Send this"
         android:layout_above="@+id/llConfirmButtons"
         android:layout_centerHorizontal="true"
         android:gravity="center_horizontal"/>
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/tvPrompt">
+        android:layout_above="@+id/tvPrompt"
+        android:orientation="vertical">
         <ImageView
             android:id="@+id/ivImageToSend"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:adjustViewBounds="true"
-            />
-    </LinearLayout>
+            android:visibility="gone"
+            android:layout_centerInParent="true"
+            android:contentDescription="image to be sent" />
+        <VideoView
+            android:id="@+id/vvVideoToSend"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            android:layout_centerInParent="true"
+            android:contentDescription="video to be sent" />
+        <TextView
+            android:id="@+id/tvAudioOrFileToSend"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            android:layout_centerInParent="true"
+            android:contentDescription="audio or file to be sent" />
+    </RelativeLayout>
 
 </RelativeLayout>

@@ -66,11 +66,11 @@ public class SocketService extends Service {
     public void onCreate() {
         super.onCreate();
 
-        AsyncTask<Void,Void,Void> connectServer = new ConnectServer();
+        AsyncTask<Void, Void, Void> connectServer = new ConnectServer();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-            connectServer.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[])null);
+            connectServer.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
         else
-            connectServer.execute((Void[])null);
+            connectServer.execute((Void[]) null);
         Log.d(TAG, "onCreate: Server created");
     }
 
@@ -102,12 +102,12 @@ public class SocketService extends Service {
 
         @Override
         protected Void doInBackground(Void... voids) {
-            try{
+            try {
                 serverSocket = new ServerSocket(0);//server starts at random port
                 port = serverSocket.getLocalPort();
-                Log.d(TAG, "doInBackground: server port = "+port);
+                Log.d(TAG, "doInBackground: server port = " + port);
                 socket = serverSocket.accept();//server will accept connections
-                Log.d(TAG, "doInBackground: client IP: "+socket.getInetAddress());
+                Log.d(TAG, "doInBackground: client IP: " + socket.getInetAddress());
                 ipSet.add(socket.getInetAddress());
                 inputStream = socket.getInputStream();
                 outputStream = socket.getOutputStream();
@@ -116,12 +116,19 @@ public class SocketService extends Service {
                 Log.d(TAG, "new Input stream");
                 dout = new DataOutputStream(outputStream);
 
-                while(!msgIn.equals("exit")){
+                while (!msgIn.equals("exit")) {
                     msgIn = din.readUTF();//get new incoming message
-                    if(!msgIn.equals("")){
+                    if (!msgIn.equals("")) {
                         Log.d(TAG, "Incoming message: " + msgIn);
-                        if(msgIn.contains("##transfer_complete")){
-                            complete = true;
+                        if (msgIn.contains("##transfer_complete")) {
+                            setComplete(true);
+                        } else if (msgIn.contains("##port:")) {//request to share file with you
+                            //extract new port number and connect to new socket
+                            // TODO: 10/04/2017 test to see if ip is not giving issues
+                            serverUIActivity.connectToFilePort(
+                                    socket.getInetAddress().toString().substring(1),// remove leading backslash
+                                    Integer.valueOf(msgIn.substring(msgIn.indexOf(':') + 1, msgIn.indexOf('/'))),
+                                    msgIn.substring(msgIn.lastIndexOf('/') + 1));
                         }
                     }
 
@@ -147,8 +154,8 @@ public class SocketService extends Service {
                 receiveChatMessage("Server:\t" + msgIn);*/
             //tvDisplay.setText(tvDisplay.getText().toString().trim() + "\nServer:\t" + msgIn);
 
-            if(serverUIActivity != null){//activity has sent itself
-                serverUIActivity.showChatMessage("Client:\t"+msgIn, true);
+            if (serverUIActivity != null) {//activity has sent itself
+                serverUIActivity.showChatMessage("Client:\t" + msgIn, true);
             }
         }
 
@@ -159,13 +166,13 @@ public class SocketService extends Service {
      * runs in the same process as its clients, we don't need to deal with IPC.
      */
     public class LocalBinder extends Binder {
-        public SocketService getService(){
+        public SocketService getService() {
             return SocketService.this;
         }
     }
 
     //port of server
-    public int getPort(){
+    public int getPort() {
         return port;
     }
 
@@ -179,7 +186,7 @@ public class SocketService extends Service {
         return msgIn;
     }
 
-    public boolean sendMessage(String message){
+    public boolean sendMessage(String message) {
         try {
             if (dout != null) {
                 dout.writeUTF(message);//send message
@@ -205,22 +212,23 @@ public class SocketService extends Service {
         isPrimaryServer = primaryServer;
     }
 
-    public void sendImage(String path) {
+    public void sendFile(String path) {
         //start temporary server
         tempServerThread = new TempServerThread(path);
         tempServerThread.start();
     }
 
 
-    private class TempServerThread extends Thread{
-        String picPath;
+    private class TempServerThread extends Thread {
+        String filePath;
+
         public TempServerThread(String path) {
-            this.picPath = path;
+            this.filePath = path;
         }
 
         @Override
         public void run() {
-            Socket tempSocket = null;//temporary image transfer socket
+            Socket tempSocket = null;//temporary file transfer socket
 
             try {
                 tempServerSocket = new ServerSocket(0);//temporary server socket on random available port
@@ -228,8 +236,8 @@ public class SocketService extends Service {
                     @Override
                     public void run() {
                         //send message of format: ##port:12345/file_name.extension
-                        String fileName = picPath.substring(picPath.lastIndexOf('/')+1);
-                        serverUIActivity.sendMessage("##port:"+tempServerSocket.getLocalPort()+"/"+fileName);
+                        String fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+                        serverUIActivity.sendMessage("##port:" + tempServerSocket.getLocalPort() + "/" + fileName);
                     }
                 });
 
@@ -238,7 +246,7 @@ public class SocketService extends Service {
                 while (!complete) {
                     tempSocket = tempServerSocket.accept();//blocks loop till a socket connection is accepted
                     //when a connection is established, send the file
-                    FileTxThread fileTxThread = new FileTxThread(tempSocket,picPath);
+                    FileTxThread fileTxThread = new FileTxThread(tempSocket, filePath);
                     fileTxThread.start();
                     //break;
                 }
@@ -272,7 +280,7 @@ public class SocketService extends Service {
 
             String queriedPath = path;
             File file = new File(queriedPath);
-            Log.d(TAG, "queriedPath: "+queriedPath);
+            Log.d(TAG, "queriedPath: " + queriedPath);
 
             byte[] bytes = new byte[(int) file.length()];
             BufferedInputStream bis;
@@ -294,7 +302,11 @@ public class SocketService extends Service {
                         Toast.makeText(serverUIActivity,
                                 sentMsg,
                                 Toast.LENGTH_LONG).show();
-                    }});
+                    }
+                });
+
+                //set complete to true here
+                setComplete(true);
 
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block

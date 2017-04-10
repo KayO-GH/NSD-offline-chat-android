@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 
 import com.finalyear.networkservicediscovery.R;
-import com.finalyear.networkservicediscovery.activities.SendFiileActivity;
+import com.finalyear.networkservicediscovery.activities.TabbedActivity;
 
 /**
  * Created by KayO on 09/03/2017.
@@ -23,7 +23,7 @@ public class UserDiscoveryFragment extends Fragment {
 
         init(view);
 
-        lvDiscoveryList.setAdapter(((SendFiileActivity)getActivity()).getDiscoveryListAdapter());
+        lvDiscoveryList.setAdapter(((TabbedActivity)getActivity()).getDiscoveryListAdapter());
         return view;
     }
 

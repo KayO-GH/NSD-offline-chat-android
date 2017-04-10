@@ -123,17 +123,17 @@ public class ProvidedIpActivity extends AppCompatActivity {
     };
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {//upon getting file to send from sendFileActivity
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             byte[] imageByteArray = data.getByteArrayExtra("imageArray");
-            String imagePath = data.getStringExtra("image_path");
+            String filePath = data.getStringExtra("image_path");
             //from here...convert byte array to bitmap and display
             //TODO Bitmap bitmapToShow = ImageConversionUtil.convertByteArrayToPhoto(imageByteArray);
 
             //call file transfer thread in service
             socketService.setComplete(false);
-            socketService.sendImage(imagePath);
+            socketService.sendFile(filePath);
 
         } else {
             Toast.makeText(ProvidedIpActivity.this,
@@ -141,7 +141,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
         }
     }
 
-    /*private void sendImage(byte[] bytesToSend) {
+    /*private void sendFile(byte[] bytesToSend) {
         //code depends on whether you are the sender or the receiver
         if(isServer){
             socketService.sendFile(bytesToSend);
@@ -345,6 +345,8 @@ public class ProvidedIpActivity extends AppCompatActivity {
                                     ip,
                                     Integer.valueOf(msgIn.substring(msgIn.indexOf(':') + 1, msgIn.indexOf('/'))),
                                     msgIn.substring(msgIn.lastIndexOf('/') + 1));
+                        }else if (msgIn.contains("##transfer_complete")) {
+                            socketService.setComplete(true);//set complete to terminate infinite loop
                         }
                         msgIn = din.readUTF();//get new incoming message
                         //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
@@ -356,49 +358,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
                     e.printStackTrace();
 
                 }
-            } /*else {//I'm the server
-                //all interactions will be through the running service
-                if(bound){
-                    //wait for incoming messages
-                    *//*while (!(socketService.getMsgIn().equals("##exit"))) {//close socket when msgIn is ##exit
-                        msgIn = socketService.getMsgIn();//get new incoming message
-                        //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
-                        Log.d("incoming", msgIn);
-                        publishProgress();//update UI
-                    }*//*
-                    while (!msgIn.equals("##exit")) {//close socket when msgIn is ##exit
-                        try {
-                            msgIn = socketService.getDin().readUTF();//get new incoming message
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
-                        Log.d("incoming", msgIn);
-                        publishProgress();//update UI
-                    }
-                }else{
-                    Log.d(TAG, "doInBackground: NOT BOUND TO SERVICE");
-                }
-
-
-                *//*try {
-                    serverSocket = new ServerSocket(myPort);//server starts at port 1201
-                    socket = serverSocket.accept();//server will accept connections
-
-                    din = new DataInputStream(socket.getInputStream());
-                    dout = new DataOutputStream(socket.getOutputStream());
-
-                    while (!msgIn.equals("exit")) {
-                        msgIn = din.readUTF();//get new incoming message
-                        Log.d("incoming", msgIn);
-                        //display messages from client
-                        publishProgress();//update UI
-                    }
-                } catch (IOException ex) {
-                    //Logger.getLogger(ChatServer.class.getName()).log(Level.SEVERE, null, ex);
-                }*//*
-            }*/
-
+            }
             return null;
         }
 
@@ -417,14 +377,14 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
     }
 
-    private void connectToFilePort(String ip, Integer port, String fileName) {
+    public void connectToFilePort(String ip, Integer port, String fileName) {
         //check if we're on Marshmallow or higher
         if (Build.VERSION.SDK_INT >= 23) {
+            //define post permission variables
             pp_ip = ip;
             pp_port = port;
             pp_fileName = fileName;
             askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, WRITE_EXST);
-
 
         } else {
             ClientRxThread clientRxThread =

@@ -16,7 +16,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.MediaController;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import com.finalyear.networkservicediscovery.R;
 
@@ -25,16 +28,20 @@ public class SendFileActivity extends AppCompatActivity {
     private static final int PICK_FILE = 100;
     private ImageView ivImageToSend;
     private Button btConfirmYes, btConfirmNo;
+    private TextView tvPrompt, tvAudioOrFile;
+    private VideoView vvVidToSend;
     Bitmap imageBitmap = null;
     Uri fileUri;
     private static final Integer READ_EXST = 0x4;
     String fileType;
+    String queriedPath;
+    MediaController vidControl;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_send_image);
+        setContentView(R.layout.activity_send_file);
 
         fileType = this.getIntent().getStringExtra("type");
 
@@ -83,15 +90,6 @@ public class SendFileActivity extends AppCompatActivity {
         btConfirmYes.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //TODO if(imageBitmap != null){
-                //image has been selected
-                //Todo: Save in sent folder, send url to provided IP activity to send across network
-
-                String queriedPath;
-                if (fileType.equals("file"))
-                    queriedPath = fileUri.getPath();
-                else
-                    queriedPath = getPath(fileUri);//decode the path from the file URI
 
                 //convert bitmap to byte array
                 //TODO byte[] imageArray = ImageConversionUtil.convertPhotoToByteArray(imageBitmap);
@@ -128,6 +126,10 @@ public class SendFileActivity extends AppCompatActivity {
         ivImageToSend = (ImageView) findViewById(R.id.ivImageToSend);
         btConfirmYes = (Button) findViewById(R.id.btConfirmYes);
         btConfirmNo = (Button) findViewById(R.id.btConfirmNo);
+        tvAudioOrFile = (TextView) findViewById(R.id.tvAudioOrFileToSend);
+        tvPrompt = (TextView) findViewById(R.id.tvPrompt);
+        vvVidToSend = (VideoView) findViewById(R.id.vvVideoToSend);
+        vidControl = new MediaController(this);
     }
 
     @Override
@@ -142,6 +144,37 @@ public class SendFileActivity extends AppCompatActivity {
                 e.printStackTrace();
                 ivImageToSend.setImageURI(fileUri);
             }*/
+
+            if (fileType.equals("file"))
+                queriedPath = fileUri.getPath();
+            else
+                queriedPath = getPath(fileUri);//decode the path from the file URI
+
+            switch (fileType){
+                case "image":
+                    //set imageView to show selected image, and text view to display appropriately
+                    ivImageToSend.setImageURI(fileUri);
+                    ivImageToSend.setVisibility(View.VISIBLE);
+                    tvPrompt.setText(R.string.image_prompt);
+                    break;
+                case "video":
+                    vvVidToSend.setVideoURI(fileUri);
+                    vvVidToSend.setVisibility(View.VISIBLE);
+                    vidControl.setAnchorView(vvVidToSend);
+                    vvVidToSend.setMediaController(vidControl);
+                    tvPrompt.setText(R.string.video_prompt);
+                    break;
+                case "file":
+                    tvAudioOrFile.setText(queriedPath.substring(queriedPath.lastIndexOf('/')+1));//set text to file name
+                    tvAudioOrFile.setVisibility(View.VISIBLE);
+                    tvPrompt.setText(R.string.file_prompt);
+                    break;
+                case "audio":
+                    tvAudioOrFile.setText(queriedPath.substring(queriedPath.lastIndexOf('/')+1));//set text to audio name
+                    tvAudioOrFile.setVisibility(View.VISIBLE);
+                    tvPrompt.setText(R.string.audio_prompt);
+                    break;
+            }
 
         }
 
