@@ -37,7 +37,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
     private ListView lvDiscoveryList;
     private DiscoveryListAdapter discoveryListAdapter;
     private DiscoveryManager discoveryManager;
-    private Contact selectedConact;
+    private Contact selectedContact;
     private Inet4Address selectedIP;
     private int selectedPort;
 
@@ -148,15 +148,15 @@ public class UserDiscoveryActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 //get ip address and service name of contact at that position
-                selectedConact = (Contact) lvDiscoveryList.getItemAtPosition(i);
+                selectedContact = (Contact) lvDiscoveryList.getItemAtPosition(i);
                 //extract ip, port and name in chat activity for use in connection
-                selectedIP = selectedConact.getIpAddress();
+                selectedIP = selectedContact.getIpAddress();
                 /*
-                selectedPort = selectedConact.getPort();*/
+                selectedPort = selectedContact.getPort();*/
 
                 final Intent chatIntent = new Intent(getApplicationContext(), ProvidedIpActivity.class);
                 Bundle pushSocket = new Bundle();
-                pushSocket.putSerializable("contact", selectedConact);
+                pushSocket.putSerializable("contact", selectedContact);
                 pushSocket.putInt("myPort", currentPort);
 
                 //check if a connection has already been established

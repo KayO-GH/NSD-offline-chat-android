@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.finalyear.networkservicediscovery.pojos.ChatMessage;
+import com.finalyear.networkservicediscovery.pojos.Contact;
 
 import java.util.ArrayList;
 
@@ -40,9 +41,7 @@ public class MessageManager {
             DBUtil.COLUMN_MESSAGE_CONTENT,
             DBUtil.COLUMN_MESSAGE_SENDER,
             DBUtil.COLUMN_MESSAGE_RECIPIENT,
-            DBUtil.COLUMN_MESSAGE_TIME_SENT,
-            DBUtil.COLUMN_MESSAGE_TIME_DELIVERED,
-            DBUtil.COLUMN_MESSAGE_SENT_STATUS
+            DBUtil.COLUMN_MESSAGE_TIME
     };
 
     private void openForRead() {
@@ -66,8 +65,7 @@ public class MessageManager {
         cv.put(DBUtil.COLUMN_MESSAGE_CONTENT, chatMessage.getMessageContent());
         cv.put(DBUtil.COLUMN_MESSAGE_SENDER, chatMessage.getSender());
         cv.put(DBUtil.COLUMN_MESSAGE_RECIPIENT, chatMessage.getRecipient());
-        cv.put(DBUtil.COLUMN_MESSAGE_TIME_SENT, chatMessage.getTimeSent());
-        cv.put(DBUtil.COLUMN_MESSAGE_TIME_DELIVERED, chatMessage.getTimeDelivered());
+        cv.put(DBUtil.COLUMN_MESSAGE_TIME, chatMessage.getTime());
         cv.put(DBUtil.COLUMN_MESSAGE_SENT_STATUS, chatMessage.isSent() ? 1 : 0);//1 if sent, 0 if not
         cv.put(DBUtil.COLUMN_MESSAGE_SENT_STATUS, chatMessage.isReceived() ? 1 : 0);//1 if received(going to the left), 0 if not
 
@@ -90,8 +88,7 @@ public class MessageManager {
         cv.put(DBUtil.COLUMN_MESSAGE_CONTENT, chatMessage.getMessageContent());
         cv.put(DBUtil.COLUMN_MESSAGE_SENDER, chatMessage.getSender());
         cv.put(DBUtil.COLUMN_MESSAGE_RECIPIENT, chatMessage.getRecipient());
-        cv.put(DBUtil.COLUMN_MESSAGE_TIME_SENT, chatMessage.getTimeSent());
-        cv.put(DBUtil.COLUMN_MESSAGE_TIME_DELIVERED, chatMessage.getTimeDelivered());
+        cv.put(DBUtil.COLUMN_MESSAGE_TIME, chatMessage.getTime());
         cv.put(DBUtil.COLUMN_MESSAGE_SENT_STATUS, chatMessage.isSent() ? 1 : 0);//1 if sent, 0 if not
         cv.put(DBUtil.COLUMN_MESSAGE_SENT_STATUS, chatMessage.isReceived() ? 1 : 0);//1 if received(going to the left), 0 if not
 
@@ -121,22 +118,21 @@ public class MessageManager {
     //these parameters may change for group messages when we implement group chat
 
     //column indexes
-    private int iID, iContent, iSender, iRecipient, iTimeSent, iTimeDelivered, iSent, iReceived;
+    private int iID, iContent, iSender, iRecipient, iTime, iTimeDelivered, iSent, iReceived;
 
     public ChatMessage getChatMessageByNumber(ChatMessage chatMessage) {
         openForRead();
-        whereConditions = DBUtil.COLUMN_MESSAGE_SENDER+"=? AND "
-                +DBUtil.COLUMN_MESSAGE_RECIPIENT+"=? AND "
-                +DBUtil.COLUMN_MESSAGE_TIME_SENT+"=?";
-        whereArgs = new String[]{chatMessage.getSender(),chatMessage.getRecipient(), chatMessage.getTimeSent()};
+        whereConditions = DBUtil.COLUMN_MESSAGE_SENDER + "=? AND "
+                + DBUtil.COLUMN_MESSAGE_RECIPIENT + "=? AND "
+                + DBUtil.COLUMN_MESSAGE_TIME + "=?";
+        whereArgs = new String[]{chatMessage.getSender(), chatMessage.getRecipient(), String.valueOf(chatMessage.getTime())};
 
         cr = db.query(DBUtil.MESSAGE_LOG_TABLE, columns, whereConditions, whereArgs, null, null, null);
         iID = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_ID);
         iContent = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_CONTENT);
         iSender = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_SENDER);
         iRecipient = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_RECIPIENT);
-        iTimeSent = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_TIME_SENT);
-        iTimeDelivered = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_TIME_DELIVERED);
+        iTime = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_TIME);
         iSent = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_SENT_STATUS);
         iReceived = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_RECEIVED_STATUS);
 
@@ -150,8 +146,7 @@ public class MessageManager {
                     cr.getString(iContent),
                     cr.getString(iSender),
                     cr.getString(iRecipient),
-                    cr.getString(iTimeSent),
-                    cr.getString(iTimeDelivered),
+                    cr.getLong(iTime),
                     //to cast to boolean, first cast to string then use Boolean.valueOf() method
                     Boolean.valueOf(String.valueOf(cr.getInt(iSent))),
                     Boolean.valueOf(String.valueOf(cr.getInt(iReceived)))
@@ -170,8 +165,7 @@ public class MessageManager {
         iContent = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_CONTENT);
         iSender = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_SENDER);
         iRecipient = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_RECIPIENT);
-        iTimeSent = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_TIME_SENT);
-        iTimeDelivered = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_TIME_DELIVERED);
+        iTime = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_TIME);
         iSent = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_SENT_STATUS);
         iReceived = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_RECEIVED_STATUS);
 
@@ -181,11 +175,44 @@ public class MessageManager {
                     cr.getString(iContent),
                     cr.getString(iSender),
                     cr.getString(iRecipient),
-                    cr.getString(iTimeSent),
-                    cr.getString(iTimeDelivered),
+                    cr.getLong(iTime),
                     //to cast to boolean, first cast to string then use Boolean.valueOf() method
                     Boolean.valueOf(String.valueOf(cr.getInt(iSent))),
                     Boolean.valueOf(String.valueOf(cr.getInt(iReceived)))
+            );
+            allChatMessages.add(chatMessage);
+        }
+
+        close();
+        return allChatMessages;
+    }
+
+    // TODO: 10/04/2017 Query this data and properly arrange in chat listview at the start of a chat activity
+    public ArrayList<ChatMessage> getChatsWithThisUser(Contact thisContact) {
+        openForRead();
+        whereConditions = DBUtil.COLUMN_MESSAGE_SENDER + "=? OR "+DBUtil.COLUMN_MESSAGE_RECIPIENT + "=?";
+        whereArgs = new String[]{thisContact.getName(),thisContact.getName()};
+
+        cr = db.query(DBUtil.MESSAGE_LOG_TABLE, columns, whereConditions, whereArgs, null, null, DBUtil.COLUMN_MESSAGE_TIME + " ASC");
+
+        iID = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_ID);
+        iContent = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_CONTENT);
+        iSender = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_SENDER);
+        iRecipient = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_RECIPIENT);
+        iTime = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_TIME);
+        iSent = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_SENT_STATUS);
+        iReceived = cr.getColumnIndex(DBUtil.COLUMN_MESSAGE_RECEIVED_STATUS);
+
+        for (cr.moveToFirst(); !cr.isAfterLast(); cr.moveToNext()) {
+            chatMessage = new ChatMessage(
+                    cr.getLong(iID),
+                    cr.getString(iContent),
+                    cr.getString(iSender),
+                    cr.getString(iRecipient),
+                    cr.getLong(iTime),
+                    //to cast to boolean, first cast to string then use Boolean.valueOf() method
+                    (cr.getString(iSender).equals("##me")),//if i'm the sender, the message was sent
+                    !(cr.getString(iSender).equals("##me"))//if i'm NOT the sender, the message was received
             );
             allChatMessages.add(chatMessage);
         }

@@ -23,8 +23,7 @@ public class DBUtil {
     public static final String COLUMN_MESSAGE_CONTENT = "t_message_content";
     public static final String COLUMN_MESSAGE_SENDER = "t_message_sender";
     public static final String COLUMN_MESSAGE_RECIPIENT = "t_message_recipient";
-    public static final String COLUMN_MESSAGE_TIME_SENT = "t_message_time_sent";
-    public static final String COLUMN_MESSAGE_TIME_DELIVERED = "t_message_time_delivered";
+    public static final String COLUMN_MESSAGE_TIME = "t_message_time_sent";
     public static final String COLUMN_MESSAGE_SENT_STATUS = "i_message_sent_status";//1 for sent(true), 0 for not sent (false)
     public static final String COLUMN_MESSAGE_RECEIVED_STATUS = "i_message_received_status";//received messages go to the left, sent go to the right on the chat screen
 
@@ -37,7 +36,7 @@ public class DBUtil {
     public static final String COLUMN_INFO_ID = "i_info_id";//we need this to use for updates
 
     //current database version
-    public static final int DB_VERSION = 1;//MAKE CHANGES AS NECESSARY WHEN APP IS IN PRODUCTION
+    public static final int DB_VERSION = 2;//MAKE CHANGES AS NECESSARY WHEN APP IS IN PRODUCTION
 
     //create tables
     public static final String  CREATE_CONTACT_TABLE =
@@ -52,12 +51,11 @@ public class DBUtil {
             "CREATE TABLE " + MESSAGE_LOG_TABLE + " (" +
                     COLUMN_MESSAGE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "+
                     COLUMN_MESSAGE_CONTENT + " TEXT, "+
-                    COLUMN_MESSAGE_SENDER + " TEXT, "+
-                    COLUMN_MESSAGE_RECIPIENT + " TEXT, "+
-                    COLUMN_MESSAGE_TIME_SENT + " TEXT, "+
-                    COLUMN_MESSAGE_TIME_DELIVERED + " TEXT, "+
-                    COLUMN_MESSAGE_SENT_STATUS + " INTEGER, "+
-                    COLUMN_MESSAGE_RECEIVED_STATUS + " INTEGER ) ";
+                    COLUMN_MESSAGE_SENDER + " TEXT, "+//me or recipient
+                    COLUMN_MESSAGE_RECIPIENT + " TEXT, "+//me or recipient
+                    COLUMN_MESSAGE_TIME + " TEXT, "+//time will always be now. No delay in serverless architecture
+                    COLUMN_MESSAGE_SENT_STATUS + " INTEGER, "+//will become redundant 09/04/2017
+                    COLUMN_MESSAGE_RECEIVED_STATUS + " INTEGER ) ";//will become redundant 09/04/2017
 
     public static final String CREATE_APP_INFO_TABLE =
             "CREATE TABLE " + APP_INFO_TABLE + " (" +

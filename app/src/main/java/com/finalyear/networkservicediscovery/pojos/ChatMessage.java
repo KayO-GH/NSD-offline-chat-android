@@ -9,7 +9,8 @@ public class ChatMessage implements Serializable {
     private boolean received;//used to determine whether messageContent should be on the left or the right in a chat
     private String messageContent;
     //newer fields
-    private String sender = null, recipient = null, timeSent = null, timeDelivered = null;
+    private String sender = null, recipient = null;
+    private long time;
     private boolean sent = false;
     private long messageID;
 
@@ -18,15 +19,18 @@ public class ChatMessage implements Serializable {
         this.messageContent = messageContent;
     }
 
-    public ChatMessage(long messageID, String messageContent, String sender, String recipient, String timeSent, String timeDelivered, boolean sent, boolean received) {
+    public ChatMessage(long messageID, String messageContent, String sender, String recipient, long time, boolean sent, boolean received) {
         this.received = received;
         this.messageContent = messageContent;
         this.sender = sender;
         this.recipient = recipient;
-        this.timeSent = timeSent;
-        this.timeDelivered = timeDelivered;
+        this.time = time;
         this.sent = sent;
         this.messageID = messageID;
+    }
+
+    public ChatMessage() {
+
     }
 
 
@@ -71,20 +75,12 @@ public class ChatMessage implements Serializable {
         this.recipient = recipient;
     }
 
-    public String getTimeSent() {
-        return timeSent;
+    public long getTime() {
+        return time;
     }
 
-    public void setTimeSent(String timeSent) {
-        this.timeSent = timeSent;
-    }
-
-    public String getTimeDelivered() {
-        return timeDelivered;
-    }
-
-    public void setTimeDelivered(String timeDelivered) {
-        this.timeDelivered = timeDelivered;
+    public void setTime(long time) {
+        this.time = time;
     }
 
     public long getMessageID() {
@@ -103,16 +99,13 @@ public class ChatMessage implements Serializable {
         ChatMessage that = (ChatMessage) o;
 
         if (received != that.received) return false;
+        if (time != that.time) return false;
         if (sent != that.sent) return false;
         if (messageID != that.messageID) return false;
         if (messageContent != null ? !messageContent.equals(that.messageContent) : that.messageContent != null)
             return false;
         if (sender != null ? !sender.equals(that.sender) : that.sender != null) return false;
-        if (recipient != null ? !recipient.equals(that.recipient) : that.recipient != null)
-            return false;
-        if (timeSent != null ? !timeSent.equals(that.timeSent) : that.timeSent != null)
-            return false;
-        return timeDelivered != null ? timeDelivered.equals(that.timeDelivered) : that.timeDelivered == null;
+        return recipient != null ? recipient.equals(that.recipient) : that.recipient == null;
 
     }
 
@@ -122,8 +115,7 @@ public class ChatMessage implements Serializable {
         result = 31 * result + (messageContent != null ? messageContent.hashCode() : 0);
         result = 31 * result + (sender != null ? sender.hashCode() : 0);
         result = 31 * result + (recipient != null ? recipient.hashCode() : 0);
-        result = 31 * result + (timeSent != null ? timeSent.hashCode() : 0);
-        result = 31 * result + (timeDelivered != null ? timeDelivered.hashCode() : 0);
+        result = 31 * result + (int) (time ^ (time >>> 32));
         result = 31 * result + (sent ? 1 : 0);
         result = 31 * result + (int) (messageID ^ (messageID >>> 32));
         return result;
@@ -136,8 +128,7 @@ public class ChatMessage implements Serializable {
                 ", messageContent='" + messageContent + '\'' +
                 ", sender='" + sender + '\'' +
                 ", recipient='" + recipient + '\'' +
-                ", timeSent='" + timeSent + '\'' +
-                ", timeDelivered='" + timeDelivered + '\'' +
+                ", time=" + time +
                 ", sent=" + sent +
                 ", messageID=" + messageID +
                 '}';

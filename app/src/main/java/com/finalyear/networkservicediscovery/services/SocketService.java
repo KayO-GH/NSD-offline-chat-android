@@ -148,7 +148,7 @@ public class SocketService extends Service {
             //tvDisplay.setText(tvDisplay.getText().toString().trim() + "\nServer:\t" + msgIn);
 
             if(serverUIActivity != null){//activity has sent itself
-                serverUIActivity.receiveChatMessage("Client:\t"+msgIn);
+                serverUIActivity.showChatMessage("Client:\t"+msgIn, true);
             }
         }
 

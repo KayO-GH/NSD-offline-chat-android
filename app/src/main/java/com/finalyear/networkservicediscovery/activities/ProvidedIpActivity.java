@@ -38,6 +38,7 @@ import com.finalyear.networkservicediscovery.adapters.ChatArrayAdapter;
 import com.finalyear.networkservicediscovery.pojos.ChatMessage;
 import com.finalyear.networkservicediscovery.pojos.Contact;
 import com.finalyear.networkservicediscovery.services.SocketService;
+import com.finalyear.networkservicediscovery.utils.database.MessageManager;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -49,6 +50,8 @@ import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Calendar;
 
 //// TODO: 07/02/2017 on destroying this activity, close the socket. Everyone enters this activity as a client
 // you may be required to change status to server while here, if te person you have been messaging opens their chat window
@@ -84,11 +87,13 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
     static final Integer WRITE_EXST = 0x3;
 
-    //post-permission variables
+    //post-permission variables (for Marshmallow)
     String pp_ip;
     int pp_port;
     String pp_fileName;
 
+    Calendar calendar = Calendar.getInstance();
+    MessageManager messageManager;
 
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -161,6 +166,15 @@ public class ProvidedIpActivity extends AppCompatActivity {
         contact = (Contact) receivedSocketData.getSerializable("contact");
         myPort = receivedSocketData.getInt("myPort");
 
+        //set activity title so user knows who he's talking to
+        getSupportActionBar().setTitle(contact.getName());
+
+        //load messages from database to be displayed in listview
+        //make database call
+        ArrayList<ChatMessage> savedMessages = messageManager.getChatsWithThisUser(contact);
+        for (ChatMessage msg : savedMessages)
+            chatArrayAdapter.add(new ChatMessage(msg.isReceived(), msg.getMessageContent()));
+
         ip = contact.getIpAddress().toString().substring(1);//eliminate '/' at the beginning of ip address
         port = contact.getPort();
         Toast.makeText(ProvidedIpActivity.this, ip + "  " + port, Toast.LENGTH_SHORT).show();
@@ -197,7 +211,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
             //interact with service
             if (socketService.sendMessage(msgOut)) {
                 //message sent successfully
-                showChatMessage("Server:\t" + msgOut);
+                showChatMessage("Server:\t" + msgOut, false);
             } else {
                 Toast.makeText(getApplicationContext(), "Error sending message", Toast.LENGTH_SHORT).show();
             }
@@ -205,7 +219,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
             try {
                 if (dout != null) {
                     dout.writeUTF(msgOut);//send message
-                    showChatMessage("Client:\t" + msgOut);
+                    showChatMessage("Client:\t" + msgOut, false);
                 } else
                     Toast.makeText(getApplicationContext(), "dout is null, no socket connection", Toast.LENGTH_LONG).show();
 
@@ -236,11 +250,29 @@ public class ProvidedIpActivity extends AppCompatActivity {
         init();
     }
 
-    private boolean showChatMessage(String s) {
-        received = false;
+    public boolean showChatMessage(String s, boolean isReceived) {
+        received = isReceived;
         chatArrayAdapter.add(new ChatMessage(received, s));
-        etMessage.setText("");
+        if (!isReceived)//outgoing message
+            etMessage.setText("");
+
+        //store messages in database over here
+        // TODO: 10/04/2017 Find a more appropriate place to move the store message function.
+        // TODO: 10/04/2017 Messages should be stored when received, even at the service level... not just when shown on screen
+        storeMessage(s, contact, isReceived);//params: message, other party, reception state
         return true;
+    }
+
+    private void storeMessage(String message, Contact contact, boolean isReceived) {
+        ChatMessage thisMessage;
+        if (isReceived) {
+            thisMessage = new ChatMessage(0, message, contact.getName(), "##me", calendar.get(Calendar.SECOND), false, true);//0 value for messageID is ignored. A better value is null, but incompatible with long
+        } else {
+            thisMessage = new ChatMessage(0, message, "##me", contact.getName(), calendar.get(Calendar.SECOND), true, false);
+        }
+        if (messageManager.createChatMessage(thisMessage)) {
+            Toast.makeText(this, "Message saved", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void init() {
@@ -249,6 +281,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
         btSend = (Button) findViewById(R.id.btSend);
         etMessage = (EditText) findViewById(R.id.etMessage);
         tvIpAndPort = (TextView) findViewById(R.id.tvIpAndPort);
+        messageManager = new MessageManager(getApplicationContext());
     }
 
     private void askForPermission(String permission, Integer requestCode) {
@@ -375,29 +408,25 @@ public class ProvidedIpActivity extends AppCompatActivity {
             //display messages from client
             received = true;
             if (isServer)
-                receiveChatMessage("Client:\t" + msgIn);
+                showChatMessage("Client:\t" + msgIn, received);
                 //tvDisplay.setText(tvDisplay.getText().toString().trim() + "Client:\t" + msgIn);
             else
-                receiveChatMessage("Server:\t" + msgIn);
+                showChatMessage("Server:\t" + msgIn, received);
             //tvDisplay.setText(tvDisplay.getText().toString().trim() + "\nServer:\t" + msgIn);
         }
 
-        /*private void receiveChatMessage(String s) {
-            received = true;
-            chatArrayAdapter.add(new ChatMessage(received, s));
-        }*/
     }
 
     private void connectToFilePort(String ip, Integer port, String fileName) {
         //check if we're on Marshmallow or higher
-        if(Build.VERSION.SDK_INT >= 23){
+        if (Build.VERSION.SDK_INT >= 23) {
             pp_ip = ip;
             pp_port = port;
             pp_fileName = fileName;
-            askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE,WRITE_EXST);
+            askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, WRITE_EXST);
 
 
-        }else{
+        } else {
             ClientRxThread clientRxThread =
                     new ClientRxThread(ip, port, fileName);
 
@@ -408,7 +437,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == WRITE_EXST){//redundant test since this is the only permission we ask for
+        if (requestCode == WRITE_EXST) {//redundant test since this is the only permission we ask for
             ClientRxThread clientRxThread =
                     new ClientRxThread(pp_ip, pp_port, pp_fileName);
 
@@ -416,10 +445,10 @@ public class ProvidedIpActivity extends AppCompatActivity {
         }
     }
 
-    public void receiveChatMessage(String s) {
+    /*public void receiveChatMessage(String s) {
         received = true;
         chatArrayAdapter.add(new ChatMessage(received, s));
-    }
+    }*/
 
 
     @Override
@@ -441,9 +470,9 @@ public class ProvidedIpActivity extends AppCompatActivity {
         int id = item.getItemId();
         Intent sendFileIntent = new Intent(getApplicationContext(), SendFileActivity.class);
         //noinspection SimplifiableIfStatement
-        switch(id){
+        switch (id) {
             case R.id.send_image_item:
-                sendFileIntent.putExtra(fileType,"image");
+                sendFileIntent.putExtra(fileType, "image");
                 //Bundle pushRecipient = new Bundle();
                 //// TODO: 13/01/2017 send the name of the person you are talking with
                 //pushRecipient.putString("recipient", service);
@@ -452,7 +481,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 startActivityForResult(sendFileIntent, PICK_FILE);
                 break;
             case R.id.send_audio_item:
-                sendFileIntent.putExtra(fileType,"audio");
+                sendFileIntent.putExtra(fileType, "audio");
                 //Bundle pushRecipient = new Bundle();
                 //// TODO: 13/01/2017 send the name of the person you are talking with
                 //pushRecipient.putString("recipient", service);
@@ -461,7 +490,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 startActivityForResult(sendFileIntent, PICK_FILE);
                 break;
             case R.id.send_video_item:
-                sendFileIntent.putExtra(fileType,"video");
+                sendFileIntent.putExtra(fileType, "video");
                 //Bundle pushRecipient = new Bundle();
                 //// TODO: 13/01/2017 send the name of the person you are talking with
                 //pushRecipient.putString("recipient", service);
@@ -470,7 +499,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 startActivityForResult(sendFileIntent, PICK_FILE);
                 break;
             case R.id.send_file_item:
-                sendFileIntent.putExtra(fileType,"file");
+                sendFileIntent.putExtra(fileType, "file");
                 //Bundle pushRecipient = new Bundle();
                 //// TODO: 13/01/2017 send the name of the person you are talking with
                 //pushRecipient.putString("recipient", service);
