@@ -543,10 +543,20 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
             try {
                 tempSocket = new Socket(dstAddress, dstPort);
-
+                String completePath = Environment.getExternalStorageDirectory().toString() + "/Wi-Files";
                 //make directory for our incoming files
                 //note that a File object can be either an actual file or a directory
-                File wifilesDirectory = new File(Environment.getExternalStorageDirectory().toString() + "/Wi-Files");
+                if (isImage(fileName)) {
+                    //file is an image
+                    completePath += "/Images";
+                } else if (isVideo(fileName)) {
+                    completePath += "/Videos";
+                }else if(isAudio(fileName)){
+                    completePath += "/Audios";
+                }else{
+                    completePath += "/Files";
+                }
+                File wifilesDirectory = new File(completePath);
                 wifilesDirectory.mkdirs();
                 File file = new File(
                         wifilesDirectory,
@@ -610,5 +620,17 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    private boolean isAudio(String fileName) {
+        return fileName.endsWith(".mp3")||fileName.endsWith(".aac")||fileName.endsWith(".m4a")||fileName.endsWith(".amr");
+    }
+
+    private boolean isVideo(String fileName) {
+        return fileName.endsWith(".mp4")||fileName.endsWith(".3gp")||fileName.endsWith(".mkv")||fileName.endsWith(".webm")||fileName.endsWith(".avi");
+    }
+
+    private boolean isImage(String fileName) {
+        return fileName.endsWith(".jpg") || fileName.endsWith(".png") || fileName.endsWith(".gif") || fileName.endsWith(".JPG") || fileName.endsWith(".PNG") || fileName.endsWith(".GIF") || fileName.endsWith(".jpeg");
     }
 }
