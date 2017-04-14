@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Network Service Discovery</string>
+    <string name="app_name">Wi-Files</string>
 
     <string name="connect">Connect</string>
     <string name="discover">Discover</string>

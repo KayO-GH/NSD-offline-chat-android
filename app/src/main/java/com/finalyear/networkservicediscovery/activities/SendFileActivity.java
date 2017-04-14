@@ -49,42 +49,40 @@ public class SendFileActivity extends AppCompatActivity {
         init();
 
         //check if we are dealing with Marshmallow or higher
-        if(Build.VERSION.SDK_INT >= 23){
-            askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE,READ_EXST);
-        }else{
-            switch (fileType) {
-                case "image":
-                    Intent gallery =
-                            new Intent(Intent.ACTION_PICK,
-                                    //android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-                                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    startActivityForResult(gallery, PICK_FILE);
-                    break;
-                case "file":
-                    //Todo: start logic to retrieve a file
-                    Intent chooseFile;
-                    Intent intent;
-                    chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
-                    chooseFile.setType("file/*");
-                    intent = Intent.createChooser(chooseFile, "Choose a file");
-                    startActivityForResult(intent, PICK_FILE);
-                    break;
-                case "video":
-                    Intent videosIntent =
-                            new Intent(Intent.ACTION_PICK,
-                                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
-                    startActivityForResult(videosIntent, PICK_FILE);
-                    break;
-                case "audio":
-                    Intent audiosIntent =
-                            new Intent(Intent.ACTION_PICK,
-                                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-                    startActivityForResult(audiosIntent, PICK_FILE);
-                    break;
-            }
+        if (Build.VERSION.SDK_INT >= 23) {
+            askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, READ_EXST);
         }
+        switch (fileType) {
+            case "image":
+                Intent gallery =
+                        new Intent(Intent.ACTION_PICK,
+                                //android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+                                MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(gallery, PICK_FILE);
+                break;
+            case "file":
+                //Todo: start logic to retrieve a file
+                Intent chooseFile;
+                Intent intent;
+                chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
+                chooseFile.setType("file/*");
+                intent = Intent.createChooser(chooseFile, "Choose a file");
+                startActivityForResult(intent, PICK_FILE);
+                break;
+            case "video":
+                Intent videosIntent =
+                        new Intent(Intent.ACTION_PICK,
+                                MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(videosIntent, PICK_FILE);
+                break;
+            case "audio":
+                Intent audiosIntent =
+                        new Intent(Intent.ACTION_PICK,
+                                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(audiosIntent, PICK_FILE);
+                break;
 
-
+        }
 
 
         btConfirmYes.setOnClickListener(new View.OnClickListener() {
@@ -150,7 +148,7 @@ public class SendFileActivity extends AppCompatActivity {
             else
                 queriedPath = getPath(fileUri);//decode the path from the file URI
 
-            switch (fileType){
+            switch (fileType) {
                 case "image":
                     //set imageView to show selected image, and text view to display appropriately
                     ivImageToSend.setImageURI(fileUri);
@@ -165,12 +163,12 @@ public class SendFileActivity extends AppCompatActivity {
                     tvPrompt.setText(R.string.video_prompt);
                     break;
                 case "file":
-                    tvAudioOrFile.setText(queriedPath.substring(queriedPath.lastIndexOf('/')+1));//set text to file name
+                    tvAudioOrFile.setText(queriedPath.substring(queriedPath.lastIndexOf('/') + 1));//set text to file name
                     tvAudioOrFile.setVisibility(View.VISIBLE);
                     tvPrompt.setText(R.string.file_prompt);
                     break;
                 case "audio":
-                    tvAudioOrFile.setText(queriedPath.substring(queriedPath.lastIndexOf('/')+1));//set text to audio name
+                    tvAudioOrFile.setText(queriedPath.substring(queriedPath.lastIndexOf('/') + 1));//set text to audio name
                     tvAudioOrFile.setVisibility(View.VISIBLE);
                     tvPrompt.setText(R.string.audio_prompt);
                     break;
@@ -183,7 +181,7 @@ public class SendFileActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if(requestCode == READ_EXST){//this test is actually redundant since we are just testing for read permissions
+        if (requestCode == READ_EXST) {//this test is actually redundant since we are just testing for read permissions
             switch (fileType) {
                 case "image":
                     Intent gallery =

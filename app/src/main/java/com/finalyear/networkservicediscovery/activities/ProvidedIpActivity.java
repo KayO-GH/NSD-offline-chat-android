@@ -300,9 +300,19 @@ public class ProvidedIpActivity extends AppCompatActivity {
             }
         } else {
             Toast.makeText(this, "" + permission + " is already granted.", Toast.LENGTH_SHORT).show();
+            ClientRxThread clientRxThread =
+                    new ClientRxThread(pp_ip, pp_port, pp_fileName);
+
+            clientRxThread.start();
+
         }
     }
 
+    /*@Override
+    protected void onDestroy() {
+        super.onDestroy();
+        closeSocket();
+    }*/
 
     private class ConnectServer extends AsyncTask<Void, Void, Void> {
 
@@ -345,7 +355,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
                                     ip,
                                     Integer.valueOf(msgIn.substring(msgIn.indexOf(':') + 1, msgIn.indexOf('/'))),
                                     msgIn.substring(msgIn.lastIndexOf('/') + 1));
-                        }else if (msgIn.contains("##transfer_complete")) {
+                        } else if (msgIn.contains("##transfer_complete")) {
                             socketService.setComplete(true);//set complete to terminate infinite loop
                         }
                         msgIn = din.readUTF();//get new incoming message
@@ -353,11 +363,15 @@ public class ProvidedIpActivity extends AppCompatActivity {
                         Log.d("incoming", msgIn);
                         publishProgress();//update UI
                     }
+
                 } catch (IOException e) {
                     Log.d(TAG, "doInBackground: exception in code");
                     e.printStackTrace();
 
-                }
+                } /*finally {
+                    //close socket
+                    closeSocket();
+                }*/
             }
             return null;
         }
@@ -377,6 +391,17 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
     }
 
+    private void closeSocket() {
+
+        if (!isServer)
+            try {
+                if (socket != null)
+                    socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    }
+
     public void connectToFilePort(String ip, Integer port, String fileName) {
         //check if we're on Marshmallow or higher
         if (Build.VERSION.SDK_INT >= 23) {
@@ -385,13 +410,15 @@ public class ProvidedIpActivity extends AppCompatActivity {
             pp_port = port;
             pp_fileName = fileName;
             askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, WRITE_EXST);
-
-        } else {
+            //client thread will be made to run in call back of ask permission function
+        }else{
             ClientRxThread clientRxThread =
                     new ClientRxThread(ip, port, fileName);
 
             clientRxThread.start();
         }
+
+
     }
 
     @Override
@@ -508,13 +535,13 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 //note that a File object can be either an actual file or a directory
                 if (isImage(fileName)) {
                     //file is an image
-                    completePath += "/Images";
+                    completePath += "/Wi-Files Images";
                 } else if (isVideo(fileName)) {
-                    completePath += "/Videos";
-                }else if(isAudio(fileName)){
-                    completePath += "/Audios";
-                }else{
-                    completePath += "/Files";
+                    completePath += "/Wi-Files Videos";
+                } else if (isAudio(fileName)) {
+                    completePath += "/Wi-Files Audios";
+                } else {
+                    completePath += "/Wi-Files";
                 }
                 File wifilesDirectory = new File(completePath);
                 wifilesDirectory.mkdirs();
@@ -529,15 +556,19 @@ public class ProvidedIpActivity extends AppCompatActivity {
                     bytes = (byte[]) ois.readObject();
                     fos = new FileOutputStream(file);
                     fos.write(bytes);
+                    //moved fos.close here //TODO check if problem is solved by moving content of finally block here
+                    fos.close();
                 } catch (ClassNotFoundException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
-                } finally {
+                    Log.d(TAG, "exception reading FOS: " + e.toString());
+                } /*finally {
                     if (fos != null) {
                         fos.close();
+
                     }
 
-                }
+                }*/
 
                 tempSocket.close();
 
@@ -573,9 +604,11 @@ public class ProvidedIpActivity extends AppCompatActivity {
                 if (tempSocket != null) {
                     try {
                         tempSocket.close();
+                        Log.d(TAG, "closeSocket: tempSocket closed");
                     } catch (IOException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
+                        Log.d(TAG, "closeSocket: tempSocket could NOT be closed");
                     }
                 }
             }
@@ -583,11 +616,11 @@ public class ProvidedIpActivity extends AppCompatActivity {
     }
 
     private boolean isAudio(String fileName) {
-        return fileName.endsWith(".mp3")||fileName.endsWith(".aac")||fileName.endsWith(".m4a")||fileName.endsWith(".amr");
+        return fileName.endsWith(".mp3") || fileName.endsWith(".aac") || fileName.endsWith(".m4a") || fileName.endsWith(".amr");
     }
 
     private boolean isVideo(String fileName) {
-        return fileName.endsWith(".mp4")||fileName.endsWith(".3gp")||fileName.endsWith(".mkv")||fileName.endsWith(".webm")||fileName.endsWith(".avi");
+        return fileName.endsWith(".mp4") || fileName.endsWith(".3gp") || fileName.endsWith(".mkv") || fileName.endsWith(".webm") || fileName.endsWith(".avi");
     }
 
     private boolean isImage(String fileName) {

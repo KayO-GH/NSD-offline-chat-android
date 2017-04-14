@@ -116,7 +116,7 @@ public class SocketService extends Service {
                 Log.d(TAG, "new Input stream");
                 dout = new DataOutputStream(outputStream);
 
-                while (!msgIn.equals("exit")) {
+                while (!msgIn.equals("##exit")) {
                     msgIn = din.readUTF();//get new incoming message
                     if (!msgIn.equals("")) {
                         Log.d(TAG, "Incoming message: " + msgIn);
@@ -135,6 +135,9 @@ public class SocketService extends Service {
                     //display messages from client
                     publishProgress();//update UI
                 }
+
+                //loop is broken, exit message was sent... remove this user from IPset
+                ipSet.remove(socket.getInetAddress());
             } catch (IOException ex) {
                 //Logger.getLogger(ChatServer.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -243,7 +246,9 @@ public class SocketService extends Service {
 
                 //send this port alert to the recipient to authorize transfer by connecting to this server
 
+                int loopCount = 0;
                 while (!complete) {
+                    Log.d(TAG, "loopCount: " + ++loopCount);
                     tempSocket = tempServerSocket.accept();//blocks loop till a socket connection is accepted
                     //when a connection is established, send the file
                     FileTxThread fileTxThread = new FileTxThread(tempSocket, filePath);
@@ -253,13 +258,16 @@ public class SocketService extends Service {
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
+                Log.d(TAG, "run: " + e.toString());
             } finally {
                 if (tempSocket != null) {
                     try {
                         tempSocket.close();
+                        Log.d(TAG, "closeTempSocket: tempSocket closed");
                     } catch (IOException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
+                        Log.d(TAG, "closeTempSocket: tempSocket NOT closed");
                     }
                 }
             }
@@ -295,6 +303,7 @@ public class SocketService extends Service {
                 tempSocket.close();
 
                 final String sentMsg = "File sent to: " + tempSocket.getInetAddress();
+                complete = true;//file transfer is complete
                 serverUIActivity.runOnUiThread(new Runnable() {
 
                     @Override
@@ -307,6 +316,7 @@ public class SocketService extends Service {
 
                 //set complete to true here
                 setComplete(true);
+                msgIn = "##transfer_complete";//force code to abort infinite loop
 
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
