@@ -12,23 +12,30 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.DataSetObserver;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
+import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -74,6 +81,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
     private String ip;
     private boolean isServer = false;
     private boolean received = false;
+    private boolean otherIsOnline = false;
     private ChatArrayAdapter chatArrayAdapter;
     private Contact contact;
     private int port;
@@ -95,6 +103,15 @@ public class ProvidedIpActivity extends AppCompatActivity {
     Calendar calendar = Calendar.getInstance();
     MessageManager messageManager;
 
+    private String userName;
+    private boolean identified = false;
+
+    private CoordinatorLayout clChatScreen;
+
+    private TextView tvFileName;
+    private TextView tvPosition;
+    private LinearLayout llFileView;
+
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -105,13 +122,11 @@ public class ProvidedIpActivity extends AppCompatActivity {
             Log.d(TAG, "onServiceConnected: socketService created");
             bound = true;
 
-            //Todo: if the other person is joining a conversation you started
-            //Todo: they'll inform you to become the server and they become the client
-            connectTask = new ConnectServer();
+            /*connectTask = new ConnectServer();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
                 connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
             else
-                connectTask.execute((Void[]) null);
+                connectTask.execute((Void[]) null);*/
 
             socketService.setServerUIActivity(ProvidedIpActivity.this);
         }
@@ -121,6 +136,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
             bound = false;
         }
     };
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {//upon getting file to send from sendFileActivity
@@ -162,12 +178,17 @@ public class ProvidedIpActivity extends AppCompatActivity {
         lvDisplay.setAdapter(chatArrayAdapter);
 
         Bundle receivedSocketData = getIntent().getBundleExtra("socket_bundle");
+        otherIsOnline = receivedSocketData.getBoolean("isUserOnline");
         isServer = receivedSocketData.getBoolean("isServer");
         contact = (Contact) receivedSocketData.getSerializable("contact");
         myPort = receivedSocketData.getInt("myPort");
 
+        if (receivedSocketData.getString("identity") != null)
+            userName = receivedSocketData.getString("identity");
+
         //set activity title so user knows who he's talking to
-        getSupportActionBar().setTitle(contact.getName());
+        if (contact.getName() != null)
+            getSupportActionBar().setTitle(contact.getName());
 
         //load messages from database to be displayed in listview
         //make database call
@@ -175,9 +196,25 @@ public class ProvidedIpActivity extends AppCompatActivity {
         for (ChatMessage msg : savedMessages)
             chatArrayAdapter.add(new ChatMessage(msg.isReceived(), msg.getMessageContent()));
 
-        ip = contact.getIpAddress().toString().substring(1);//eliminate '/' at the beginning of ip address
-        port = contact.getPort();
-        Toast.makeText(ProvidedIpActivity.this, ip + "  " + port, Toast.LENGTH_SHORT).show();
+        if (otherIsOnline) {//other user is online
+            ip = contact.getIpAddress().toString().substring(1);//eliminate '/' at the beginning of ip address
+            port = contact.getPort();
+            Toast.makeText(ProvidedIpActivity.this, ip + "  " + port, Toast.LENGTH_SHORT).show();
+
+            //server connection code moved here in case other user is completely offline
+            connectTask = new ConnectServer();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[]) null);
+            else
+                connectTask.execute((Void[]) null);
+        } else {
+            //other user is offline
+            //disable send button and text field
+            btSend.setEnabled(false);
+            etMessage.setEnabled(false);
+            etMessage.setInputType(InputType.TYPE_NULL);
+            etMessage.setText(R.string.other_user_offline);
+        }
 
                 /*//user is the server
                 isServer = true;
@@ -193,6 +230,60 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
         lvDisplay.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
         lvDisplay.setAdapter(chatArrayAdapter);
+        lvDisplay.setSelection(chatArrayAdapter.getCount()-1);
+
+        lvDisplay.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                tvFileName = (TextView) view.findViewById(R.id.tvFileName);
+                tvPosition = (TextView) view.findViewById(R.id.tvPosition);
+                llFileView = (LinearLayout) view.findViewById(R.id.llFileView);
+                //String fileName = tvFileName.getText().toString().substring(tvFileName.getText().toString().lastIndexOf("\"));
+                String fileName = tvFileName.getText().toString();
+                String completePath = Environment.getExternalStorageDirectory().toString() + "/Wi-Files";
+
+                Intent openFileIntent = new Intent(Intent.ACTION_VIEW);
+
+
+                if(llFileView.getVisibility()==View.VISIBLE){//we're dealing with a file
+                    if (tvPosition.getText().toString().equalsIgnoreCase("left")){
+                        if (isImage(fileName)) {
+                            completePath += "/Wi-Files Images";
+                        } else if (isVideo(fileName)) {
+                            completePath += "/Wi-Files Videos";
+                        } else if (isAudio(fileName)) {
+                            completePath += "/Wi-Files Audios";
+                        } else {
+                            completePath += "/Wi-Files";
+                        }
+
+                        Intent intent = new Intent();
+                        intent.setAction(android.content.Intent.ACTION_VIEW);
+                        String fileToOpen = completePath+"/"+fileName;
+                        //Uri path = Uri.fromFile(fileToOpen);
+                        File file = new File(fileToOpen);
+
+                        MimeTypeMap mime = MimeTypeMap.getSingleton();
+                        String ext = file.getName().substring(file.getName().lastIndexOf(".") + 1);
+                        String type = mime.getMimeTypeFromExtension(ext);
+
+                        intent.setDataAndType(Uri.fromFile(file), type);
+
+                        startActivity(intent);
+
+                    /*File fileToOpen = new File(completePath+"/"+fileName);
+                    Uri path = Uri.fromFile(fileToOpen);
+                    openFileIntent.setData(path);
+
+                    Intent chooserIntent = Intent.createChooser(openFileIntent, "Open in...");
+                    startActivity(chooserIntent);*/
+                    }
+                }
+
+
+
+            }
+        });
 
         //to scroll the list view to the bottom on data change
         chatArrayAdapter.registerDataSetObserver(new DataSetObserver() {
@@ -211,6 +302,9 @@ public class ProvidedIpActivity extends AppCompatActivity {
             //interact with service
             if (socketService.sendMessage(msgOut)) {
                 //message sent successfully
+                //store messages in database over here
+                storeMessage("Server:\t" + msgOut, contact, false);//params: message, other party, reception state
+                //show message in chat screen
                 showChatMessage("Server:\t" + msgOut, false);
             } else {
                 Toast.makeText(getApplicationContext(), "Error sending message", Toast.LENGTH_SHORT).show();
@@ -219,6 +313,8 @@ public class ProvidedIpActivity extends AppCompatActivity {
             try {
                 if (dout != null) {
                     dout.writeUTF(msgOut);//send message
+                    //store messages in database over here
+                    storeMessage("Client:\t" + msgOut, contact, false);//params: message, other party, reception state
                     showChatMessage("Client:\t" + msgOut, false);
                 } else
                     Toast.makeText(getApplicationContext(), "dout is null, no socket connection", Toast.LENGTH_LONG).show();
@@ -243,7 +339,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_manual_ip);
+        setContentView(R.layout.activity_chat_screen);
         toolbar = (Toolbar) findViewById(R.id.tool_bar);
         setSupportActionBar(toolbar);
 
@@ -256,14 +352,10 @@ public class ProvidedIpActivity extends AppCompatActivity {
         if (!isReceived)//outgoing message
             etMessage.setText("");
 
-        //store messages in database over here
-        // TODO: 10/04/2017 Find a more appropriate place to move the store message function.
-        // TODO: 10/04/2017 Messages should be stored when received, even at the service level... not just when shown on screen
-        storeMessage(s, contact, isReceived);//params: message, other party, reception state
         return true;
     }
 
-    private void storeMessage(String message, Contact contact, boolean isReceived) {
+    public void storeMessage(String message, Contact contact, boolean isReceived) {
         ChatMessage thisMessage;
         if (isReceived) {
             thisMessage = new ChatMessage(0, message, contact.getName(), "##me", calendar.get(Calendar.SECOND), false, true);//0 value for messageID is ignored. A better value is null, but incompatible with long
@@ -271,7 +363,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
             thisMessage = new ChatMessage(0, message, "##me", contact.getName(), calendar.get(Calendar.SECOND), true, false);
         }
         if (messageManager.createChatMessage(thisMessage)) {
-            Toast.makeText(this, "Message saved", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "Message saved", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -282,6 +374,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
         etMessage = (EditText) findViewById(R.id.etMessage);
         tvIpAndPort = (TextView) findViewById(R.id.tvIpAndPort);
         messageManager = new MessageManager(getApplicationContext());
+        clChatScreen = (CoordinatorLayout) findViewById(R.id.clChatScreen);
     }
 
     private void askForPermission(String permission, Integer requestCode) {
@@ -348,6 +441,9 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
                     din = new DataInputStream(inputStream);
                     dout = new DataOutputStream(outputStream);
+
+                    publishProgress();//identify yourself once by sending message on UI thread
+
                     while (!msgIn.equals("##exit")) {//close socket when msgIn is ##exit
                         if (msgIn.contains("##port:")) {
                             //extract new port number and connect to new socket
@@ -357,6 +453,16 @@ public class ProvidedIpActivity extends AppCompatActivity {
                                     msgIn.substring(msgIn.lastIndexOf('/') + 1));
                         } else if (msgIn.contains("##transfer_complete")) {
                             socketService.setComplete(true);//set complete to terminate infinite loop
+                            /*runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Snackbar snackbar = Snackbar
+                                            .make(clChatScreen, "File Received", Snackbar.LENGTH_LONG);
+
+                                    snackbar.show();
+                                }
+                            });*/
+
                         }
                         msgIn = din.readUTF();//get new incoming message
                         //Toast.makeText(getApplicationContext(),msgIn,Toast.LENGTH_LONG).show();
@@ -379,14 +485,24 @@ public class ProvidedIpActivity extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(Void... values) {
             super.onProgressUpdate(values);
+
+            //TODO make sure the position of this if-statement is not causing trouble
+            if (!identified) {
+                //tell the server who you are so they can save your messages appropriately
+                sendMessage("##identity:" + userName);
+                identified = true;
+            }
             //display messages from client
             received = true;
-            if (isServer)
+            if (isServer) {
                 showChatMessage("Client:\t" + msgIn, received);
-                //tvDisplay.setText(tvDisplay.getText().toString().trim() + "Client:\t" + msgIn);
-            else
+                storeMessage("Client:\t" + msgIn, contact, received);//params: message, other party, reception state
+            } else {
                 showChatMessage("Server:\t" + msgIn, received);
-            //tvDisplay.setText(tvDisplay.getText().toString().trim() + "\nServer:\t" + msgIn);
+                storeMessage("Client:\t" + msgIn, contact, received);//params: message, other party, reception state
+            }
+
+
         }
 
     }
@@ -411,7 +527,7 @@ public class ProvidedIpActivity extends AppCompatActivity {
             pp_fileName = fileName;
             askForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, WRITE_EXST);
             //client thread will be made to run in call back of ask permission function
-        }else{
+        } else {
             ClientRxThread clientRxThread =
                     new ClientRxThread(ip, port, fileName);
 
@@ -625,5 +741,9 @@ public class ProvidedIpActivity extends AppCompatActivity {
 
     private boolean isImage(String fileName) {
         return fileName.endsWith(".jpg") || fileName.endsWith(".png") || fileName.endsWith(".gif") || fileName.endsWith(".JPG") || fileName.endsWith(".PNG") || fileName.endsWith(".GIF") || fileName.endsWith(".jpeg");
+    }
+
+    public Contact getContact() {
+        return contact;
     }
 }

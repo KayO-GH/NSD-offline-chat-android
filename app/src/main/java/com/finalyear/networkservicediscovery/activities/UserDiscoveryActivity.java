@@ -37,6 +37,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
     private ListView lvDiscoveryList;
     private DiscoveryListAdapter discoveryListAdapter;
     private DiscoveryManager discoveryManager;
+
     private Contact selectedContact;
     private Inet4Address selectedIP;
     private int selectedPort;
@@ -116,30 +117,6 @@ public class UserDiscoveryActivity extends AppCompatActivity {
         nsdHelper.mServiceName = userName;
         nsdHelper.initializeNsd();
 
-        //might have to override some methods for this handler object (check the class that uses mUpdateHandler)
-        /*updateHandler = new Handler(){
-            @Override
-            public void handleMessage(Message msg) {
-                String chatLine = msg.getData().getString("msg");
-                if (chatLine.startsWith("me")) {
-                    //addChatLine(chatLine, false);
-                    // TODO: 07/02/2017 log message
-                } else {
-                    //addChatLine(chatLine, true);
-                    // TODO: 07/02/2017 log message
-                }
-
-            }
-        };*/
-        /*{
-            @Override
-            public void handleMessage(Message msg) {
-                //log messages correctly while still on this page
-            }
-        };*/
-        //chatConnection = new ChatConnection(updateHandler);
-
-
         Intent bindIntent = new Intent(getApplicationContext(), SocketService.class);
         getApplicationContext().bindService(bindIntent, serviceConnection, Context.BIND_AUTO_CREATE);
 
@@ -149,15 +126,22 @@ public class UserDiscoveryActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 //get ip address and service name of contact at that position
                 selectedContact = (Contact) lvDiscoveryList.getItemAtPosition(i);
-                //extract ip, port and name in chat activity for use in connection
-                selectedIP = selectedContact.getIpAddress();
-                /*
-                selectedPort = selectedContact.getPort();*/
 
                 final Intent chatIntent = new Intent(getApplicationContext(), ProvidedIpActivity.class);
                 Bundle pushSocket = new Bundle();
                 pushSocket.putSerializable("contact", selectedContact);
                 pushSocket.putInt("myPort", currentPort);
+
+                //extract ip, port and name in chat activity for use in connection
+                selectedIP = selectedContact.getIpAddress();
+
+                if(selectedContact.isOnline()) {
+                    //contact u selected is online
+                    pushSocket.putBoolean("isUserOnline", true);
+                }else{
+                    //contact is offline so you can only read messages
+                    pushSocket.putBoolean("isUserOnline", false);
+                }
 
                 //check if a connection has already been established
                 if (alreadyConnected(selectedIP)) {//server
@@ -169,6 +153,7 @@ public class UserDiscoveryActivity extends AppCompatActivity {
                 } else {//not the server
                     Log.d(TAG, "onItemClick: New conection to this user");
                     pushSocket.putBoolean("isServer", false);
+                    pushSocket.putString("identity",userName);
                     chatIntent.putExtra("socket_bundle", pushSocket);
                     startActivity(chatIntent);
                 }
@@ -193,14 +178,15 @@ public class UserDiscoveryActivity extends AppCompatActivity {
     private void init() {
         lvDiscoveryList = (ListView) findViewById(R.id.lvDiscoveryList);
         discoveryManager = new DiscoveryManager(getApplicationContext());
-        discoveryListAdapter = new DiscoveryListAdapter(getApplicationContext(), discoveryManager.getAllContacts());//finish this up with the SavedListActivity forat in KayO
+        discoveryListAdapter = new DiscoveryListAdapter(getApplicationContext(), discoveryManager.getAllContacts());//finish this up with the SavedListActivity format in KayO
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         if (nsdHelper != null) {
-            nsdHelper.stopDiscovery();
+            //this line was causing the code to break with: java.lang.IllegalArgumentException: service discovery not active on listener
+            //nsdHelper.stopDiscovery();
         }
         if (bound) {
             getApplicationContext().unbindService(serviceConnection);

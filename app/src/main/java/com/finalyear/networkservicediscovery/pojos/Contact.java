@@ -9,12 +9,12 @@ import java.util.Arrays;
  * Created by KayO on 28/12/2016.
  */
 public class Contact implements Serializable {
-    private String name;
+    private String name = null;
     private byte[] image;
-    private boolean online;
+    private boolean online = false;
     private String lastMessage;
     private boolean isSenderOfLastMessage;//will be needed later
-    private String phoneNumber;
+    private String phoneNumber = null;
     private Inet4Address ipAddress;
     private int port;
 

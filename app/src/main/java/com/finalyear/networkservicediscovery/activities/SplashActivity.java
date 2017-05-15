@@ -4,6 +4,7 @@ package com.finalyear.networkservicediscovery.activities;
 //if it's not, take him/her to the discovery page
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -20,7 +21,14 @@ public class SplashActivity extends AppCompatActivity {
         setContentView(R.layout.activity_splash);
         //getSupportActionBar().hide();
 
-        new CheckRunState().execute();
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                new CheckRunState().execute();
+            }
+        }, 1200);
+
+
     }
 
     private class CheckRunState extends AsyncTask<Void, Void, Void>{
@@ -58,7 +66,7 @@ public class SplashActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... voids) {
-            //Todo : DO DATABASE CHECK OVER HERE
+            //DO DATABASE CHECK OVER HERE
             localInfo = new LocalInfoManager(getApplicationContext()).getLocalInfo();
             isFirstRun = localInfo.isFirstTime();
             return null;

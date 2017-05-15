@@ -31,7 +31,7 @@ public class DBUtil {
     //this table is to check for first time runs and keep information like my service_name (phone number) for use in the app
     //This table is meant to work with only one row
     public static final String APP_INFO_TABLE = "app_info_tbl";
-    public static final String COLUMN_INFO_FIRST_RUN = "i_first_run_state";//1 for FRIST RUN(true), 0 for false
+    public static final String COLUMN_INFO_FIRST_RUN = "i_first_run_state";//1 for FIRST RUN(true), 0 for false
     public static final String COLUMN_INFO_LOCAL_IDENTITY = "t_identity";
     public static final String COLUMN_INFO_ID = "i_info_id";//we need this to use for updates
 

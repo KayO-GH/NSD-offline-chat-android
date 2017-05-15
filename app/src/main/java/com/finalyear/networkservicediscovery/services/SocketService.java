@@ -11,6 +11,9 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.finalyear.networkservicediscovery.activities.ProvidedIpActivity;
+import com.finalyear.networkservicediscovery.pojos.ChatMessage;
+import com.finalyear.networkservicediscovery.pojos.Contact;
+import com.finalyear.networkservicediscovery.utils.database.MessageManager;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -25,6 +28,8 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 
 /**
@@ -61,10 +66,16 @@ public class SocketService extends Service {
     boolean isPrimaryServer = false;
 
     private boolean complete = false;
+    private HashMap<InetAddress, String> hashMap = null;
+    Calendar calendar = Calendar.getInstance();
+
+    MessageManager messageManager;
 
     @Override
     public void onCreate() {
         super.onCreate();
+
+        messageManager = new MessageManager(getApplicationContext());
 
         AsyncTask<Void, Void, Void> connectServer = new ConnectServer();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
@@ -118,6 +129,12 @@ public class SocketService extends Service {
 
                 while (!msgIn.equals("##exit")) {
                     msgIn = din.readUTF();//get new incoming message
+                    if(msgIn.startsWith("##identity")){
+                        //match this name to ip in hashmap
+                        if(hashMap ==null)
+                            hashMap = new HashMap<InetAddress,String>();
+                        hashMap.put(socket.getInetAddress(),msgIn.substring(msgIn.indexOf(':') + 1));
+                    }
                     if (!msgIn.equals("")) {
                         Log.d(TAG, "Incoming message: " + msgIn);
                         if (msgIn.contains("##transfer_complete")) {
@@ -159,9 +176,25 @@ public class SocketService extends Service {
 
             if (serverUIActivity != null) {//activity has sent itself
                 serverUIActivity.showChatMessage("Client:\t" + msgIn, true);
+                serverUIActivity.storeMessage("Client:\t" + msgIn, serverUIActivity.getContact(), true);//params: message, other party, reception state
+            }else{
+                //find the contact currently associated with this IP and use that to store the message
+                Contact contact = new Contact();
+                contact.setName(hashMap.get(socket.getInetAddress()));
+                storeForLater("Client:\t" + msgIn, contact, true);//params: message, other party, reception state
             }
         }
 
+    }
+
+    private void storeForLater(String message, Contact contact, boolean isReceived) {
+        ChatMessage thisMessage;
+        if (isReceived) {
+            thisMessage = new ChatMessage(0, message, contact.getName(), "##me", calendar.get(Calendar.SECOND), false, true);//0 value for messageID is ignored. A better value is null, but incompatible with long
+        } else {
+            thisMessage = new ChatMessage(0, message, "##me", contact.getName(), calendar.get(Calendar.SECOND), true, false);
+        }
+        messageManager.createChatMessage(thisMessage);
     }
 
     /**
@@ -199,6 +232,7 @@ public class SocketService extends Service {
             return false;
         } catch (IOException e) {
             e.printStackTrace();
+            Log.d(TAG, "sendMessage: message not sent, e = "+e.toString());
         }
         return false;
     }
@@ -332,6 +366,7 @@ public class SocketService extends Service {
                     e.printStackTrace();
                 }
             }
+
 
         }
     }

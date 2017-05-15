@@ -3,6 +3,7 @@ package com.finalyear.networkservicediscovery.utils.nsd_classes;
 /**
  * Created by KayO on 07/12/2016.
  */
+
 import android.app.Activity;
 import android.content.Context;
 import android.net.nsd.NsdServiceInfo;
@@ -22,7 +23,7 @@ public class NsdHelper {
     Activity mContext;
     DiscoveryManager discoveryManager;
     DiscoveryListAdapter discoveryListAdapter;
-    ArrayList<Contact>currentContactList;
+    ArrayList<Contact> currentContactList;
 
     NsdManager mNsdManager;
     NsdManager.ResolveListener mResolveListener;
@@ -32,6 +33,7 @@ public class NsdHelper {
 
     //public static final String SERVICE_TYPE = "_http._tcp.";
     public static final String SERVICE_TYPE = "_NsdChat._tcp.";
+    //public static final String SERVICE_TYPE = "_NSDChat._tcp.local.";
 
     public static final String TAG = "NsdHelper";
     public String mServiceName = null;
@@ -43,12 +45,30 @@ public class NsdHelper {
         mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
     }
 
-    public NsdHelper(Activity context, DiscoveryManager discoveryManager, DiscoveryListAdapter discoveryListAdapter) {
+    public NsdHelper(Activity context, DiscoveryManager discoveryManager, final DiscoveryListAdapter discoveryListAdapter) {
         mContext = context;
         mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
         this.discoveryManager = discoveryManager;
         this.discoveryListAdapter = discoveryListAdapter;
+       /* mContext.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                discoveryListAdapter.notifyDataSetChanged();
+            }
+        });*/
         currentContactList = this.discoveryManager.getAllContacts();
+
+        //remove redundant contacts shown here
+        for (int i = 0; i < currentContactList.size() - 1; i++) {//start i from first element
+            for (int j = 1; j < currentContactList.size(); j++) {//start j from second element
+                if (currentContactList.get(i).getName().equals(currentContactList.get(j).getName())) {
+                    //duplicate encountered, remove duplicate
+                    currentContactList.remove(j);
+                    //reduce j by one so that after j++ the new object in j's position can be tested
+                    //--j;
+                }
+            }
+        }
     }
 
     public void initializeNsd() {
@@ -75,9 +95,10 @@ public class NsdHelper {
                     Log.d(TAG, "Unknown Service Type: " + service.getServiceType());
                 } else if (service.getServiceName().equals(mServiceName)) {
                     Log.d(TAG, "Same machine: " + mServiceName);
-                } else{
+                } else {
                     //resolve service
                     mNsdManager.resolveService(service, new MyResolveListener());
+
                 }
             }
 
@@ -146,7 +167,7 @@ public class NsdHelper {
             @Override
             public void onServiceRegistered(NsdServiceInfo NsdServiceInfo) {
                 mServiceName = NsdServiceInfo.getServiceName();
-                Toast.makeText(mContext, "Registration successful: "+mServiceName, Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, "Registration successful: " + mServiceName, Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -167,8 +188,8 @@ public class NsdHelper {
 
     public void registerService(int port) {
         //check if listener is already in use before attempting to register service
-        if(!registerListenerInUse){
-            NsdServiceInfo serviceInfo  = new NsdServiceInfo();
+        if (!registerListenerInUse) {
+            NsdServiceInfo serviceInfo = new NsdServiceInfo();
             serviceInfo.setPort(port);
             serviceInfo.setServiceName(mServiceName);
             serviceInfo.setServiceType(SERVICE_TYPE);
@@ -184,7 +205,7 @@ public class NsdHelper {
     }
 
     public void discoverServices() {
-        if(!discoverListenerInUse) {
+        if (!discoverListenerInUse) {
             mNsdManager.discoverServices(
                     SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
 
@@ -219,18 +240,53 @@ public class NsdHelper {
                 Log.d(TAG, "Same IP.");
                 return;
             }
+
+            //check if service exists in database
+            Contact dummyContact = new Contact();
+            dummyContact.setPhoneNumber(serviceInfo.getServiceName());
+            //for now, set contact name to phone number as well... we'll sort out phone number issues later
+            dummyContact.setName(serviceInfo.getServiceName());
+            if (discoveryManager.getContactByNumber(dummyContact) == null) {
+                //contact does not exist in database
+                Log.d(TAG, "onServiceResolved: contact does not exist in database: " + dummyContact.getName());
+                //create it
+                if (discoveryManager.createContact(dummyContact)) {
+                    Log.d(TAG, "onServiceResolved: new Contact stored: " + dummyContact.getName());
+                } else {
+                    Log.d(TAG, "onServiceResolved: new Contact NOT stored: " + dummyContact.getName());
+                }
+            } else {
+                Log.d(TAG, "onServiceResolved: contact ALREADY exists in database: " + dummyContact.getName());
+            }
+
             mService = serviceInfo;
             //see details for current service info resolved
             Toast.makeText(mContext, mService.toString(), Toast.LENGTH_SHORT).show();
-            //add discovered contact to list of current online users in a Listview
-            Contact foundContact = new Contact(mService.getServiceName(),null,null,null);
+            //add discovered contact to list of current online users in a ListView
+            final Contact foundContact = new Contact(mService.getServiceName(), null, null, null);
             foundContact.setIpAddress((Inet4Address) mService.getHost());
             foundContact.setPort(mService.getPort());
-            currentContactList.add(foundContact);
-            discoveryListAdapter.setAllContacts(currentContactList);
+            foundContact.setOnline(true);
+            //get rid of possible duplicates
+            /*if (currentContactList != null)
+                for (int i = 0;i< currentContactList.size();i++) {
+                    if (currentContactList.get(i).getPhoneNumber() != null && (currentContactList.get(i).getPhoneNumber().equals(foundContact.getPhoneNumber())))
+                        currentContactList.remove(currentContactList.get(i));
+                }*/
+            if (currentContactList != null)
+                for (Contact contact : currentContactList) {
+                    if (contact.getName().equals(foundContact.getName()))
+                        currentContactList.remove(contact);
+                }
+
+
             mContext.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+
+                    //add newly found contact at the top of the list
+                    currentContactList.add(0, foundContact);
+                    discoveryListAdapter.setAllContacts(currentContactList);
                     discoveryListAdapter.notifyDataSetChanged();
                 }
             });

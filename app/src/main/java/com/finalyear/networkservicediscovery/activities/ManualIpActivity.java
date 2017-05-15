@@ -51,7 +51,7 @@ public class ManualIpActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_manual_ip);
+        setContentView(R.layout.activity_chat_screen);
 
         init();
         chatArrayAdapter = new ChatArrayAdapter(getApplicationContext(),R.layout.right);

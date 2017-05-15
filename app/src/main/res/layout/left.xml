@@ -18,18 +18,41 @@
         android:paddingTop="5dp"
         android:text="Sampleleft"
         android:textColor="#000" />
-    <ImageView
-        android:id="@+id/ivPictureMessage"
+
+    <LinearLayout
+        android:id="@+id/llFileView"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="start"
-        android:layout_marginBottom="5dp"
-        android:layout_marginRight="20dp"
+        android:orientation="vertical"
+        android:visibility="gone"
         android:background="@drawable/textview_others"
-        android:paddingBottom="8dp"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        android:paddingTop="5dp"
-        android:visibility="gone"/>
+        android:layout_gravity="left">
+
+        <ImageView
+            android:id="@+id/ivFilePic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="5dp"
+            android:paddingBottom="8dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:paddingTop="5dp"
+            android:src="@drawable/wi_files_logo"
+            />
+        <TextView
+            android:id="@+id/tvFileName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#aaa"
+            />
+        <TextView
+            android:id="@+id/tvPosition"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text = "left"
+            android:visibility="gone"
+            />
+    </LinearLayout>
 
 </LinearLayout>

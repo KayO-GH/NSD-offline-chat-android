@@ -16,7 +16,7 @@ import com.finalyear.networkservicediscovery.utils.database.LocalInfoManager;
 
 public class RegistrationActivity extends AppCompatActivity {
 
-    private EditText etCountryCode, etPhoneNumber;
+    private EditText etServiceName;
     private Button btSubmitNumber;
     private LocalInfo newInfo;
 
@@ -37,8 +37,8 @@ public class RegistrationActivity extends AppCompatActivity {
                 //Todo:Perform validation on phone number
                 //Todo: use a dialog box to confirm that user is sure about what he's about to do
                 newInfo.setFirstTime(false);
-                String number = etCountryCode.getText().toString() + etPhoneNumber.getText().toString();
-                newInfo.setIdentity(number);
+                String serviceName = etServiceName.getText().toString();
+                newInfo.setIdentity(serviceName);
                 if(new LocalInfoManager(getApplicationContext()).createLocalInfo(newInfo)){
                     Toast.makeText(RegistrationActivity.this, "Successfully Registered", Toast.LENGTH_SHORT).show();
                     //bundle user identity to next activity
@@ -59,8 +59,7 @@ public class RegistrationActivity extends AppCompatActivity {
     }
 
     private void init() {
-        etCountryCode = (EditText) findViewById(R.id.etCountryCode);
-        etPhoneNumber = (EditText) findViewById(R.id.etPhoneNumber);
+        etServiceName = (EditText) findViewById(R.id.etServiceName);
         btSubmitNumber = (Button) findViewById(R.id.btSubmitNumber);
         newInfo = new LocalInfo();
     }

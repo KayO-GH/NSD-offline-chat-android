@@ -7,29 +7,47 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-        <ImageView
-            android:id="@+id/ivContactImage"
-            android:layout_width="wrap_content"
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:src="@drawable/no_profile_pic"
             android:layout_weight="1"
-            android:adjustViewBounds="true"/>
+            android:padding="7dp">
+            <ImageView
+                android:id="@+id/ivContactImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/color_blue"
+                android:adjustViewBounds="true"/>
+            <TextView
+                android:id="@+id/tvFirstLetter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:textAlignment="center"
+                android:textColor="@android:color/white"
+                android:textSize="50sp"/>
+        </RelativeLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="0.5"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_gravity="center"
+            android:gravity="center">
             <TextView
                 android:id="@+id/tvContactName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Name"
+                android:textSize="18sp"
                 android:textColor="#ff2f2f2f"/>
             <TextView
                 android:id="@+id/tvLastMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hi there"/>
+                android:text="Hi there"
+                android:visibility="gone"/>
         </LinearLayout>
 
         <TextView

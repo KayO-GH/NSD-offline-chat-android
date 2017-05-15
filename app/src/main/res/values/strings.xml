@@ -10,4 +10,5 @@
     <string name="video_prompt">Send this Video?</string>
     <string name="file_prompt">Send this FIle?</string>
     <string name="audio_prompt">Send this Audio?</string>
+    <string name="other_user_offline">USER IS OFFLINE.</string>
 </resources>
